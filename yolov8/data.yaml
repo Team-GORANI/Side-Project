@@ -1,0 +1,30 @@
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
+path: C:/Users/Windows/Desktop/Side_Project/data/house
+train: train/image
+val: val/image
+
+# Classes
+nc: 15  # number of classes
+# names: [
+#         "집전체", "지붕", "집벽", "문", "창문", 
+#            "굴뚝", "연기", "울타리", "길", "연못",
+#            "산", "나무", "꽃", "잔디", "태양"
+#         ]  # class names
+
+names:
+  0: 집전체
+  1: 지붕
+  2: 집벽
+  3: 문
+  4: 창문
+  5: 굴뚝
+  6: 연기
+  7: 울타리
+  8: 길
+  9: 연못
+  10: 산
+  11: 나무
+  12: 꽃
+  13: 잔디
+  14: 태양
+
