@@ -3,6 +3,7 @@ import json
 import os
 import cv2
 import numpy as np
+from PIL import ImageFont, ImageDraw, Image
 
 """ [Required file tree structure]
 data/
@@ -13,7 +14,7 @@ data/
 │       ├── 집_7_남_00061.jpg
 │       └── ... (기타 이미지 파일들)
 │
-├── meta/
+├── meta/ # 이름 변경 가능합니다.
 │   └── 집/
 │       ├── 집_7_남_00060.json
 │       ├── 집_7_남_00061.json
@@ -105,7 +106,6 @@ def main():
     st.title('🖼️ Image Annotation Visualization')
 
     # 소스 디렉토리 설정 (현재 스크립트 위치 기준 상대 경로)
-#    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     project_root = os.path.expanduser('~/Desktop/Git/Side-Project/data')
     source_dir = os.path.join(project_root, '원천데이터', '집')
     meta_dir = os.path.join(project_root, 'meta', '집')
