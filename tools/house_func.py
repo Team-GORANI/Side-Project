@@ -1,5 +1,8 @@
 import json
 
+# JSON 파일 경로 
+json_file_path = "data/house_infomation.json"
+
 def calculate_a_to_b_ratio(bboxes, a, b):
     """
     a / b의 비율을 계산하고 결과를 출력하는 함수
@@ -32,13 +35,13 @@ def calculate_a_to_b_ratio(bboxes, a, b):
     if a_area != 0 and b_area != 0 and b_area > 0:
         ratio = (a_area/a_cnt) / (b_area/b_cnt)
         if ratio > reference_value[0]:
-            print(f"{a} / {b} 값은 {ratio:.4f}로 큰 편입니다.")
+            return f"{a} / {b} 값은 {ratio:.4f}로 큰 편입니다."
         elif ratio < reference_value[1]:
-            print(f"{a} / {b} 값은 {ratio:.4f}로 작은 편입니다.")
+            return f"{a} / {b} 값은 {ratio:.4f}로 작은 편입니다."
         else:
-            print(f"{a} / {b} 값은 {ratio:.4f}로 평균입니다.")
+            return f"{a} / {b} 값은 {ratio:.4f}로 평균입니다."
     else:
-        print(f"{a} 또는 {b} 정보가 부족합니다.")
+        return f"{a} 또는 {b} 정보가 부족합니다."
 
 def check_house_position(bboxes):
     """
@@ -49,14 +52,13 @@ def check_house_position(bboxes):
             center_y = bbox["y"] + bbox["h"] / 2
 
             if center_y < 1280 / 3:
-                print("객체가 하단에 위치하고 있습니다.")
+                return "객체가 하단에 위치하고 있습니다."
             elif center_y > 1280 * 2 / 3:
-                print("객체가 상단에 위치하고 있습니다.")
+                return "객체가 상단에 위치하고 있습니다."
             else:
-                print("객체가 중앙에 위치하고 있습니다.")
-            return
+                return "객체가 중앙에 위치하고 있습니다."
 
-    print("사람전체 레이블이 존재하지 않습니다.")
+    return "사람 전체 레이블이 존재하지 않습니다."
 
 def check_label_existence(bboxes, label):
     """
@@ -67,32 +69,28 @@ def check_label_existence(bboxes, label):
         if bbox.get("label") == label:
             cnt+=1
     if cnt > 0:
-        print(f"{label}(이)가 {cnt}개 있습니다.")
-        return True
-    print(f"{label}가 없습니다.")
-    return False
+        return f"{label}(이)가 {cnt}개 있습니다.", True
+    return f"{label}가 없습니다.", False
 
-# JSON 파일 경로
-json_file_path = "C:/Users/Taehan/workspace/nbproject1/sideProject/code/Side-Project/data/meta/House/집_10_남_11951.json"  # 실제 파일 경로로 변경
+def analyze_house(bboxes=None):
+    """집 그림의 모든 특징을 분석"""
+    if bboxes is None:
+        # JSON 파일에서 데이터 로드
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        bboxes = data.get("annotations", {}).get("bbox", [])
+    
+    results = []
+    results.append(check_house_position(bboxes))
+    label_exists, has_wall = check_label_existence(bboxes, "집벽")
+    results.append(label_exists)
+    
+    for feature in ["문", "지붕", "창문", "연기"]:
+        label_exists, exists = check_label_existence(bboxes, feature)
+        if exists:
+            results.append(calculate_a_to_b_ratio(bboxes, feature, "집벽"))
+    return results
 
-# JSON 파일 열기
-with open(json_file_path, 'r', encoding='utf-8') as f:
-    data = json.load(f)
-
-# 바운딩 박스 정보 가져오기
-bboxes = data.get("annotations", {}).get("bbox", [])
-
-# 함수 호출 및 결과 출력 예시
-check_house_position(bboxes)
-check_label_existence(bboxes, "집벽")
-if check_label_existence(bboxes, "문"):
-    calculate_a_to_b_ratio(bboxes, "문", "집벽")
-if check_label_existence(bboxes, "지붕"):
-    calculate_a_to_b_ratio(bboxes, "지붕", "집벽")
-if check_label_existence(bboxes, "창문"):
-    calculate_a_to_b_ratio(bboxes, "창문", "집벽")
-if check_label_existence(bboxes, "연기"):
-    calculate_a_to_b_ratio(bboxes, "연기", "집벽")
 
 # Output:
 # 객체가 하단에 위치하고 있습니다.
