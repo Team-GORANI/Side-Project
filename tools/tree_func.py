@@ -1,14 +1,33 @@
 import json
 
 # JSON 파일 경로 
-json_file_path = "data/tree_information.json"
+json_file_path = "data/tree_info.json"
+
+# 한글 레이블을 영어로 매핑
+label_mapping = {
+    "나무전체": "tree_whole",
+    "기둥": "trunk",
+    "수관": "crown",
+    "가지": "branch",
+    "뿌리": "root",
+    "나뭇잎": "leaf",
+    "꽃": "flower",
+    "열매": "fruit",
+    "그네": "swing",
+    "새": "bird",
+    "다람쥐": "squirrel",
+    "구름": "cloud",
+    "달": "moon",
+    "별": "star"
+}
 
 def check_label_existence(bboxes, label):
     """
     Check the existence of a specific label and return a message and count.
     """
     cnt = sum(1 for bbox in bboxes if bbox.get("label") == label)
-    return (f"There are {cnt} '{label}' objects." if cnt > 0 else f"No '{label}' found."), cnt
+    eng_label = label_mapping.get(label, label) 
+    return (f"There are {cnt} '{eng_label}' objects." if cnt > 0 else f"No '{eng_label}' found."), cnt
 
 def get_area_of_label(bboxes, label):
     """
@@ -36,19 +55,19 @@ def get_areas_of_label(bboxes, label):
 
 def check_and_print_ratio(canopy_area, areas, label_type):
     """
-    Compare object areas (column or branch) with the canopy area
+    Compare object areas (trunk or branch) with the canopy area
     and determine if it's large or small based on thresholds.
     """
-    if label_type == "기둥":  # column
+    if label_type == "기둥":  # trunk
         large_threshold = 0.650350
         small_threshold = 0.381995
-        large_str = "This column is large"
-        small_str = "This column is small"
+        large_str = "Large trunk: actively engaged, creative environment"
+        small_str = "Small trunk: helplessness, maladaptation"
     elif label_type == "가지":  # branch
         large_threshold = 0.145762
         small_threshold = 0.359546
-        large_str = "This branch is large"
-        small_str = "This branch is small"
+        large_str = "Large branch: inflated self-esteem, grandiose self"
+        small_str = "Small branch: weakness and incompetence"
     else:
         return None
 
@@ -83,7 +102,7 @@ def check_animal_in_pillar(bboxes):
             cx = bbox["x"] + bbox["w"] / 2
             cy = bbox["y"] + bbox["h"] / 2
             if px <= cx <= px + pw and py <= cy <= py + ph:
-                return "There is an animal inside the tree."
+                return "Animal inside the hole: identification with animals, attachment-related, seeking stability, symbol of the womb"
     return "No animal inside the tree."
 
 def check_tree_position(bboxes):
@@ -95,11 +114,11 @@ def check_tree_position(bboxes):
         if bbox.get("label") == "나무전체":
             center_y = bbox["y"] + bbox["h"] / 2
             if center_y < 1280 / 3:
-                return "The whole tree is located at the top."
+                return "Top position: goal-oriented tendency"
             elif center_y > 1280 * 2 / 3:
-                return "The whole tree is located at the bottom."
+                return "Bottom position: self-protective attitude"
             else:
-                return "The whole tree is located at the center."
+                return "Center position: inner stability, growth desire"
     return "No 'whole tree' label found."
 
 def analyze_canopy(bboxes):
@@ -118,9 +137,26 @@ def analyze_tree(bboxes=None):
         # Load from JSON file
         with open(json_file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        bboxes = data.get("annotations", {}).get("bbox", [])
+            meta = data.get("meta", {})
+            bboxes = data.get("annotations", {}).get("bbox", [])
 
     results = []
+    
+     # 이미지 해상도
+    results.append(f"Image Resolution: {meta.get('img_resolution')}")
+    
+    # 바운딩박스 형식 설명
+    results.append("\nBoxes type = [x,y,w,h]")
+    
+    # 바운딩박스 정보 -> 문자열로 변환
+    bbox_info = []
+    for bbox in bboxes:
+        eng_label = label_mapping.get(bbox['label'], bbox['label'])
+        bbox_info.append(f"{eng_label}: [{bbox['x']},{bbox['y']},{bbox['w']},{bbox['h']}]")
+    
+    results.append(", ".join(bbox_info))
+    results.append("")
+
     results.append(check_tree_position(bboxes))        # tree position
     canopy_msg, canopy_area = analyze_canopy(bboxes)
     results.append(canopy_msg)                         # canopy info
@@ -156,38 +192,7 @@ def analyze_tree(bboxes=None):
         animal_result = check_animal_in_pillar(bboxes)
         results.append(animal_result)
 
-    # Interpretations mapping
-    # If a certain keyword is found in `results`, add the corresponding interpretation in English.
-    interpretations = {
-        "top": "Top position: goal-oriented tendency",
-        "center": "Center position: inner stability, growth desire",
-        "bottom": "Bottom position: self-protective attitude",
-        "This column is large": "Large column: actively engaged, creative environment",
-        "This column is small": "Small column: helplessness, maladaptation",
-        "This branch is large": "Large branch: inflated self-esteem, grandiose self",
-        "This branch is small": "Small branch: weakness and incompetence",
-        "There is an animal inside the tree.": "Animal inside the hole: identification with animals, attachment-related, seeking stability, symbol of the womb"
-    }
-
-    final_interpretation = []
-
-    for res in results:
-        # Check position keywords
-        if "top" in res.lower():
-            final_interpretation.append(interpretations["top"])
-        elif "center" in res.lower():
-            final_interpretation.append(interpretations["center"])
-        elif "bottom" in res.lower():
-            final_interpretation.append(interpretations["bottom"])
-        
-        # Check column/branch/animal lines
-        for key in ["This column is large", "This column is small", 
-                    "This branch is large", "This branch is small", 
-                    "There is an animal inside the tree."]:
-            if key in res:
-                final_interpretation.append(interpretations[key])
-
-    return final_interpretation
+    return results
 
 # Example run
 # final_result = analyze_tree()

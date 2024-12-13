@@ -1,5 +1,30 @@
 import json
 
+# JSON 파일 경로 
+json_file_path = "data/person_info.json"
+
+# 한글 레이블을 영어로 매핑
+label_mapping = {
+    "사람전체": "person_whole",
+    "머리": "head",
+    "얼굴": "face",
+    "눈": "eye",
+    "코": "nose",
+    "입": "mouth",
+    "귀": "ear",
+    "머리카락": "hair",
+    "목": "neck",
+    "상체": "upper_body",
+    "팔": "arm",
+    "손": "hand",
+    "다리": "leg",
+    "발": "foot",
+    "단추": "button",
+    "주머니": "pocket",
+    "운동화": "sneakers",
+    "남자구두": "dress_shoes"
+}
+
 def calculate_head_to_upper_ratio(bboxes):
     """
     Calculate the head-to-upper body ratio and print the result in English.
@@ -19,9 +44,9 @@ def calculate_head_to_upper_ratio(bboxes):
     if head_area is not None and upper_body_area is not None and upper_body_area > 0:
         ratio = head_area / upper_body_area
         if ratio > 2.2925420:
-            print("Large head: Intellectual curiosity, lack of physical energy.")
+            return "Large head: Intellectual curiosity, lack of physical energy."
         elif ratio < 1.2819802:
-            print("No head: Neurosis, depression, autistic tendencies.")
+            return "No head: Neurosis, depression, autistic tendencies."
 
 def calculate_eye_to_face_ratio(bboxes):
     """
@@ -43,9 +68,9 @@ def calculate_eye_to_face_ratio(bboxes):
         avg_eye_area = sum(eye_areas) / 2
         ratio = avg_eye_area / face_area
         if ratio > 0.0427861542:
-            print("Large eyes: Suspicion of others, hypersensitivity.")
+            return "Large eyes: Suspicion of others, hypersensitivity."
         elif ratio < 0.0221859051:
-            print("No eyes: Guilt feelings.")
+            return "No eyes: Guilt feelings."
 
 def calculate_leg_to_upper_ratio(bboxes):
     """
@@ -67,9 +92,9 @@ def calculate_leg_to_upper_ratio(bboxes):
         avg_leg_height = sum(leg_heights) / 2
         ratio = avg_leg_height / upper_body_height
         if ratio > 1.30162008:
-            print("Long legs: Desire for stability and independence.")
+            return "Long legs: Desire for stability and independence."
         elif ratio < 0.9464469:
-            print("Short legs: Loss of independence, tendency for dependency.")
+            return "Short legs: Loss of independence, tendency for dependency."
 
 def check_human_position(bboxes):
     """
@@ -80,12 +105,11 @@ def check_human_position(bboxes):
             center_x = bbox["x"] + bbox["w"] / 2
 
             if center_x < 1280 / 3:
-                print("Left position: Obsession with the past, introverted tendencies.")
+                return "Left position: Obsession with the past, introverted tendencies."
             elif center_x > 1280 * 2 / 3:
-                print("Right position: Future-oriented attitude, extroverted tendencies.")
+                return "Right position: Future-oriented attitude, extroverted tendencies."
             else:
-                print("Center position: Self-centeredness, confidence in interpersonal relationships.")
-            return
+                return "Center position: Self-centeredness, confidence in interpersonal relationships."
 
 def check_label_existence(bboxes, label):
     """
@@ -95,21 +119,52 @@ def check_label_existence(bboxes, label):
         if bbox.get("label") == label:
             return  # Nothing is printed if the label exists
 
-# JSON file path
-json_file_path = "C:/Users/Windows/Desktop/Side_Project/data/person/label/남자사람_10_남_02666.json"  # Update to actual file path
+def analyze_person(bboxes=None):
+    """사람 그림의 모든 특징을 분석"""
+    if bboxes is None:
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                meta = data.get("meta", {})
+                bboxes = data.get("annotations", {}).get("bbox", [])
+        except Exception as e:
+            print(f"Error loading JSON file: {e}")
+            return []
 
-# Open the JSON file
-with open(json_file_path, 'r', encoding='utf-8') as f:
-    data = json.load(f)
+    results = []
+    
+    # 이미지 해상도
+    results.append(f"Image Resolution: {meta.get('img_resolution')}")
+    
+    # 바운딩박스 형식 설명
+    results.append("\nBoxes type = [x,y,w,h]")
+    
+    # 바운딩박스 정보 -> 문자열로 변환
+    bbox_info = []
+    for bbox in bboxes:
+        eng_label = label_mapping.get(bbox['label'], bbox['label'])
+        bbox_info.append(f"{eng_label}: [{bbox['x']},{bbox['y']},{bbox['w']},{bbox['h']}]")
+    
+    results.append(", ".join(bbox_info))
+    results.append("")
 
-# Get bounding box information
-bboxes = data.get("annotations", {}).get("bbox", [])
+    # Call functions
+    analysis_results = [
+        check_human_position(bboxes),
+        calculate_head_to_upper_ratio(bboxes),
+        check_label_existence(bboxes, "머리"),
+        check_label_existence(bboxes, "눈"),
+        calculate_eye_to_face_ratio(bboxes),
+        check_label_existence(bboxes, "코"),
+        calculate_leg_to_upper_ratio(bboxes)
+    ]
+    
+    for result in analysis_results:
+        if result is not None:
+            results.append(result)
 
-# Call functions and print results
-check_human_position(bboxes)
-calculate_head_to_upper_ratio(bboxes)
-check_label_existence(bboxes, "머리")
-check_label_existence(bboxes, "눈")
-calculate_eye_to_face_ratio(bboxes)
-check_label_existence(bboxes, "코")
-calculate_leg_to_upper_ratio(bboxes)
+    return results
+
+# Example run
+# final_result = analyze_person()
+# print("\n".join(final_result))

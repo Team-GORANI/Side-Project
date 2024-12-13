@@ -1,14 +1,34 @@
 import json
 
 # JSON 파일 경로 
-json_file_path = "data/house_information.json"
+json_file_path = "data/house_info.json"
+
+# 한글 레이블을 영어로 매핑
+label_mapping = {
+    "집전체": "house_whole",
+    "지붕": "roof",
+    "집벽": "wall",
+    "문": "door",
+    "창문": "window",
+    "굴뚝": "chimney",
+    "연기": "smoke",
+    "울타리": "fence",
+    "길": "road",
+    "연못": "pond",
+    "산": "mountain",
+    "나무": "tree",
+    "꽃": "flower",
+    "잔디": "grass",
+    "태양": "sun"
+}
 
 def check_label_existence(bboxes, label):
     """
     Check the existence of a specific label and return a message and count.
     """
     cnt = sum(1 for bbox in bboxes if bbox.get("label") == label)
-    return (f"There are {cnt} '{label}' objects." if cnt > 0 else f"No '{label}' found."), cnt
+    eng_label = label_mapping.get(label, label) 
+    return (f"There are {cnt} '{eng_label}' objects." if cnt > 0 else f"No '{eng_label}' found."), cnt
 
 def get_area_of_label(bboxes, label):
     """
@@ -42,23 +62,23 @@ def check_and_print_ratio(canopy_area, areas, label_type):
     if label_type == "지붕":  # roof
         large_threshold = 0.923515
         small_threshold = 0.665191
-        large_str = "This roof is large"
-        small_str = "This roof is small"
+        large_str = "Large roof: a tendency to daydream and flee to superficial interpersonal relationships"
+        small_str = "Small roof: a lack of psychological protection, realistic thinking"
     elif label_type == "창문":  # window
         large_threshold = 0.073576
         small_threshold = 0.041115
-        large_str = "This window is large"
-        small_str = "This window is small"
+        large_str = "Large window: inflated self-esteem, grandiose self"
+        small_str = "Small window: a psychological distancing, shy personality"
     elif label_type == "문":  # door
         large_threshold = 0.159336
         small_threshold = 0.102952
-        large_str = "This door is large"
-        small_str = "This door is small"
+        large_str = "Large door: a dependent person, a desire for active social contact"
+        small_str = "Small door: reluctance, helplessness and indecision to come into contact with the environment"
     elif label_type == "연기":  # smoke
         large_threshold = 0.187033
         small_threshold = 0.069497
-        large_str = "This smoke is large"
-        small_str = "This smoke is small"
+        large_str = "Large smoke: a lack of home warmth"
+        small_str = "Small smoke: suppression of emotional expression"
     else:
         return None
 
@@ -80,12 +100,12 @@ def check_house_position(bboxes):
             center_y = bbox["y"] + bbox["h"] / 2
 
             if center_y < 1280 / 3:
-                return "The house is located at the top."
+                return "Top position: idealistic and fanciful"
             elif center_y > 1280 * 2 / 3:
-                return "The house is located at the bottom."
+                return "Bottom position: Realistic, Unstable Sentiment"
             else:
-                return "The house is located at the center."
-
+                return "Center position: A stable home environment, reflecting the sense of reality"     
+   
     return "No 'house' label found."
 
 def analyze_canopy(bboxes):
@@ -101,17 +121,38 @@ def analyze_canopy(bboxes):
 def analyze_house(bboxes=None):
     """집 그림의 모든 특징을 분석"""
     if bboxes is None:
-        # JSON 파일에서 데이터 로드
-        with open(json_file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        bboxes = data.get("annotations", {}).get("bbox", [])
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                meta = data.get("meta", {})
+                bboxes = data.get("annotations", {}).get("bbox", [])
+        except Exception as e:
+            print(f"Error loading JSON file: {e}")
+            return []
     
     results = []
+
+    # 이미지 해상도
+    results.append(f"Image Resolution: {meta.get('img_resolution')}")
+    
+    # 바운딩박스 형식 설명
+    results.append("\nBoxes type = [x,y,w,h]")
+    
+    # 바운딩박스 정보 -> 문자열로 변환
+    bbox_info = []
+    for bbox in bboxes:
+        eng_label = label_mapping.get(bbox['label'], bbox['label'])
+        bbox_info.append(f"{eng_label}: [{bbox['x']},{bbox['y']},{bbox['w']},{bbox['h']}]")
+    
+    results.append(", ".join(bbox_info))
+    results.append("")
+
+    # 집의 위치 분석
     results.append(check_house_position(bboxes))
     canopy_msg, canopy_area = analyze_canopy(bboxes)
     results.append(canopy_msg)
     
-    # 비율 파악해야하는 것들
+    # 비율 파악해야 하는 것들
     for feature in ["문", "지붕", "창문", "연기"]:
         label_msg, exists = check_label_existence(bboxes, feature)
         results.append(label_msg)
@@ -126,47 +167,17 @@ def analyze_house(bboxes=None):
         label_msg, exists = check_label_existence(bboxes, feature)
         if exists:
             if feature == "길":
-                results.append(f"There is road")
+                results.append(f"Road existence: Welcome to Social Interrelationships")
             if feature == "잔디":
-                results.append(f"There is grass")
+                results.append(f"Grass existence: psychological stability")
             if feature == "울타리":
-                results.append(f"There is fence")
-            
+                results.append(f"Fence existence: trying to build a psychological bulwark")
 
-    # Interpretations mapping
-    # If a certain keyword is found in `results`, add the corresponding interpretation in English.
-    interpretations = {
-        "top": "Top position: idealistic and fanciful",
-        "center": "Center position: A stable home environment, reflecting the sense of reality",
-        "bottom": "Bottom position: Realistic, Unstable Sentiment",
-        "This roof is large": "Large roof: a tendency to daydream and flee to superficial interpersonal relationships",
-        "This roof is small": "Small roof: a lack of psychological protection, realistic thinking",
-        "This window is large": "Large window: inflated self-esteem, grandiose self",
-        "This window is small": "Small window: a psychological distancing, shy personality",
-        "This door is large": "Large door: a dependent person, a desire for active social contact",
-        "This door is small": "Small door: reluctance, helplessness and indecision to come into contact with the environment",
-        "This smoke is large": "Large smoke: a lack of home warmth",
-        "This smoke is small": "Small smoke: suppression of emotional expression",
-        "There is road": "Road existence: Welcome to Social Interrelationships",
-        "There is grass": "Grass existence: psychological stability",
-        "There is fence": "Fence existence: trying to build a psychological bulwark"
-    }
-    final_interpretation = []
+    return results
 
-    for res in results:
-        # Check position keywords
-        if "top" in res.lower():
-            final_interpretation.append(interpretations["top"])
-        elif "center" in res.lower():
-            final_interpretation.append(interpretations["center"])
-        elif "bottom" in res.lower():
-            final_interpretation.append(interpretations["bottom"])
-        keys_list = list(interpretations.keys())
-        # Check key_list
-        if res in keys_list:
-            final_interpretation.append(interpretations[res])
-
-    return final_interpretation
+# Example run
+# final_result = analyze_house()
+# print("\n".join(final_result))
 
 # final_interpretation:
 # ['Top position: idealistic and fanciful', 
