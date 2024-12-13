@@ -1,5 +1,8 @@
 import json
 
+# JSON 파일 경로 
+json_file_path = "data/tree_infomation.json"
+
 def check_label_existence(bboxes, label):
     """
     특정 레이블의 존재 여부를 확인하고 개수를 반환하며 결과를 출력하는 함수
@@ -9,10 +12,9 @@ def check_label_existence(bboxes, label):
         if bbox.get("label") == label:
             cnt += 1
     if cnt > 0:
-        print(f"{label}(이)가 {cnt}개 있습니다.")
+        return f"{label}(이)가 {cnt}개 있습니다.", cnt
     else:
-        print(f"{label}가 없습니다.")
-    return cnt
+        return f"{label}가 없습니다.", 0
 
 def get_area_of_label(bboxes, label):
     """
@@ -56,9 +58,9 @@ def check_and_print_ratio(canopy_area, areas, label_type):
     for area in areas:
         ratio = area / canopy_area
         if ratio >= large_threshold:
-            print(f'{label_type}/수관 비율이 {ratio:.6f} 이므로 {label_type}가 크다')
+            return f'{label_type}/수관 비율이 {ratio:.6f} 이므로 {label_type}가 크다'
         elif ratio <= small_threshold:
-            print(f'{label_type}/수관 비율이 {ratio:.6f} 이므로 {label_type}가 작다')
+            return f'{label_type}/수관 비율이 {ratio:.6f} 이므로 {label_type}가 작다'
 
 def check_animal_in_pillar(bboxes):
     """
@@ -72,8 +74,7 @@ def check_animal_in_pillar(bboxes):
             break
 
     if pillar_box is None:
-        print("기둥이 없습니다.")
-        return
+        return "기둥이 없습니다."
 
     px, py = pillar_box["x"], pillar_box["y"]
     pw, ph = pillar_box["w"], pillar_box["h"]
@@ -90,9 +91,9 @@ def check_animal_in_pillar(bboxes):
                 break
 
     if animal_found:
-        print("동물이 나무에 존재한다")
+        return "동물이 나무에 존재한다"
     else:
-        print("동물이 나무에 존재하지 않는다")
+        return "동물이 나무에 존재하지 않는다"
 
 def check_tree_position(bboxes):
     """
@@ -103,55 +104,62 @@ def check_tree_position(bboxes):
             center_y = bbox["y"] + bbox["h"] / 2
             # 해상도가 1280x1280이라고 가정
             if center_y < 1280 / 3:
-                print("나무전체가 하단에 위치하고 있습니다.")
+                return "나무전체가 하단에 위치하고 있습니다."
             elif center_y > 1280 * 2 / 3:
-                print("나무전체가 상단에 위치하고 있습니다.")
+                return "나무전체가 상단에 위치하고 있습니다."
             else:
-                print("나무전체가 중앙에 위치하고 있습니다.")
-            return
-    print("나무전체 레이블이 존재하지 않습니다.")
+                return "나무전체가 중앙에 위치하고 있습니다."
+    return "나무전체 레이블이 존재하지 않습니다."
 
-# 메인 로직
-# 특정 JSON 파일 경로 설정
-json_file = "data/tree_infomation.json"
-
-with open(json_file, 'r', encoding='utf-8') as f:
-    data = json.load(f)
-
-bboxes = data.get("annotations", {}).get("bbox", [])
-
-# 나무전체 위치 확인
-check_tree_position(bboxes)
-
-# 수관 존재 확인
-if check_label_existence(bboxes, "수관") == 0:
-    print("해당 JSON 파일에 수관(label='수관')이 존재하지 않습니다.")
-else:
+def analyze_canopy(bboxes):
+    """
+    수관 존재 여부를 확인하고 관련 분석을 수행하는 함수
+    """
+    # 수관 존재 확인
+    canopy_msg, canopy_exists = check_label_existence(bboxes, "수관")
+    
+    if not canopy_exists:
+        return "해당 JSON 파일에 수관(label='수관')이 존재하지 않습니다.", 0
+    
     # 수관 면적 구하기
     canopy_area = get_area_of_label(bboxes, "수관")
+    return canopy_msg, canopy_area
 
-    # 기둥 존재 확인
-    check_label_existence(bboxes, "기둥")
-    # 기둥 면적들
-    column_areas = get_areas_of_label(bboxes, "기둥")
-    if len(column_areas) > 0:
-        # 기둥 비율 체크
-        check_and_print_ratio(canopy_area, column_areas, "기둥")
-
-    # 가지 존재 확인
-    check_label_existence(bboxes, "가지")
-    # 가지 면적들
-    branch_areas = get_areas_of_label(bboxes, "가지")
-    if len(branch_areas) > 0:
-        # 가지 비율 체크
-        check_and_print_ratio(canopy_area, branch_areas, "가지")
-
-    # 동물("다람쥐", "새") 존재 확인
-    check_label_existence(bboxes, "다람쥐")
-    check_label_existence(bboxes, "새")
-    # 동물 체크
-    check_animal_in_pillar(bboxes)
-
+def analyze_tree(bboxes=None):
+    """나무의 모든 특징을 분석"""
+    if bboxes is None:
+        # JSON 파일에서 데이터 로드
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        bboxes = data.get("annotations", {}).get("bbox", [])
+    
+    results = []
+    results.append(check_tree_position(bboxes))
+    
+    # 수관 분석
+    canopy_msg, canopy_area = analyze_canopy(bboxes)
+    results.append(canopy_msg)
+    
+    if canopy_area > 0:  # 수관이 있을 때만 추가 분석
+        # 기둥 분석
+        pillar_msg, pillar_exists = check_label_existence(bboxes, "기둥")
+        results.append(pillar_msg)
+        if pillar_exists:
+            pillar_areas = get_areas_of_label(bboxes, "기둥")
+            ratio_result = check_and_print_ratio(canopy_area, pillar_areas, "기둥")
+            if ratio_result:
+                results.append(ratio_result)
+        
+        # 가지 분석
+        branch_msg, branch_exists = check_label_existence(bboxes, "가지")
+        results.append(branch_msg)
+        if branch_exists:
+            branch_areas = get_areas_of_label(bboxes, "가지")
+            ratio_result = check_and_print_ratio(canopy_area, branch_areas, "가지")
+            if ratio_result:
+                results.append(ratio_result)
+    
+    return results
 
 # output
 # 나무전체가 중앙에 위치하고 있습니다.
