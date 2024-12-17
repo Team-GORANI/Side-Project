@@ -1,0 +1,25 @@
+/* src/index.css */
+
+/* Tailwind CSS 기본 스타일 임포트 */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* 기본 폰트 및 스타일 설정 */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* 기본 레이아웃 설정 */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f8fafc;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+}
