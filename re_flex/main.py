@@ -1,5 +1,5 @@
 import reflex as rx
-from index import index
+from pages.index import index
 
 # Configure the application
 config = rx.Config(
@@ -19,7 +19,7 @@ app = rx.App(state=rx.State)
 app.add_page(
     route="/",
     component=index,
-    title="Object Detection"
+    title="HTP Analysis"
 )
 
 if __name__ == "__main__":
