@@ -1,28 +1,112 @@
-// src/pages/Drawing.tsx
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Navbar } from '../components/Navbar';
 import { analyzeImage } from '../services/api';
-  
-export default function Drawing() {
-  // 상태 관리
-  const [mode, setMode] = useState<'draw' | 'upload'>('draw');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // 캔버스 참조, 라우팅 훅
-  const canvasRef = useRef<ReactSketchCanvasRef>(null);
-  const navigate = useNavigate();
-  const { type } = useParams<{ type: 'house' | 'tree' | 'person' }>();
+import '../styles/pages/drawing.css';
 
-  // 실행 취소 핸들러(sketch-canvas)
-  const handleUndo = () => {
-    canvasRef.current?.undo();
+const ERASER_SIZE = 20;
+const PEN_SIZE = 4;
+
+// 그리기 타입
+type DrawingType = 'house' | 'tree' | 'person';
+
+// 애니메이션 variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
+const contentVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
+export default function Drawing() {
+  // URL 파라미터 - 라우팅
+  const { type } = useParams<{ type: string }>();
+  const navigate = useNavigate();
+
+  // 상태 관리
+  const [mode, setMode] = useState<'draw' | 'upload'>('draw'); // 그리기/업로드 모드
+  const [tool, setTool] = useState<'pen' | 'eraser'>('pen'); // 펜/지우개 도구
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태
+  const [error, setError] = useState<string | null>(null); // 에러 메시지
+  const [isDragging, setIsDragging] = useState(false); // 드래그 상태
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null); // 업로드된 파일
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // 미리보기 URL
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 }); // 커서 위치
+
+  // 캔버스 참조
+  const canvasRef = useRef<ReactSketchCanvasRef>(null);
+
+  // type 유효성 검사
+  const validateType = (param: string | undefined): DrawingType => {
+    if (!param || !['house', 'tree', 'person'].includes(param)) {
+      return 'house';
+    }
+    return param as DrawingType;
   };
 
-  // 전체 지우기 핸들러(sketch-canvas)
-  const handleClear = () => {
-    canvasRef.current?.clearCanvas();
+  const validatedType = validateType(type);
+
+  const getTitle = () => {
+    switch (validatedType) {
+      case 'house': return 'Draw Your House!';
+      case 'tree': return 'Draw Your Tree!';
+      case 'person': return 'Draw Your Person!';
+      default: return 'Draw Your House!';
+    }
+  };
+
+  // CustomCursor 
+  useEffect(() => {
+    const updatePosition = (e: MouseEvent) => {
+      if (tool === 'eraser') {
+        const canvas = document.querySelector('.drawing-area');
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          // 캔버스 영역 내에서만 커서 표시
+          if (
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom
+          ) {
+            setCursorPosition({ x: e.clientX, y: e.clientY });
+          }
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', updatePosition);
+    return () => window.removeEventListener('mousemove', updatePosition);
+  }, [tool]);
+
+  // 파일 처리 함수
+  const handleFileChange = (file: File) => {
+    setUploadedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith('image/')) {
+      handleFileChange(file);
+    }
   };
 
   // 제출 핸들러
@@ -31,133 +115,202 @@ export default function Drawing() {
       setIsLoading(true);
       setError(null);
 
-      let imageData: File | string;
-      
-      // 모드에 따른 이미지 데이터 처리
-      if (mode === 'draw') {
-        const canvas = await canvasRef.current?.exportImage('png');
-        if (!canvas) throw new Error('캔버스 데이터를 가져올 수 없습니다.');
-        imageData = canvas;
-      } else {
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-        const file = fileInput.files?.[0];
-        if (!file) throw new Error('파일을 선택해주세요.');
-        imageData = file;
+      const imageData = mode === 'draw'
+        ? await canvasRef.current?.exportImage('png')
+        : uploadedFile;
+
+      if (!imageData) {
+        throw new Error(mode === 'draw' ? '그림을 그려주세요' : '파일을 선택해주세요');
       }
 
-      if (!type) throw new Error('유형이 선택되지 않았습니다.');
-
-      // API 호출 및 결과 페이지로 이동
-      const result = await analyzeImage(imageData, type);
+      const result = await analyzeImage(imageData, validatedType);
       navigate('/result', { state: { result } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.');
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // UI 렌더링
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-3xl mx-auto px-4"> {}
-        <div className="text-center">
-          {/* 제목 */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-4"> {}
-            {type === 'house' ? '집' : type === 'tree' ? '나무' : '사람'}을 그려보세요
-          </h2>
+    <div className="w-full min-h-screen flex flex-col bg-white">
+      <Navbar style={{ width: '100%', position: 'sticky', top: 0, zIndex: 50 }} link="/" />
 
-          {/* 모드 선택 버튼 */}
-          <div className="flex justify-center gap-4 mb-4"> {}
-            <button 
-              onClick={() => setMode('draw')}
-              className={`w-32 h-10 rounded-lg font-medium transition-colors duration-200 
-                ${mode === 'draw' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300'}`}
-            > {}
-              직접 그리기
-            </button>
-            <button 
-              onClick={() => setMode('upload')}
-              className={`w-32 h-10 rounded-lg font-medium transition-colors duration-200
-                ${mode === 'upload' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300'}`}
-            > {}
-              이미지 업로드
-            </button>
-          </div>
+      <div className="flex-1 flex justify-center items-start pt-4">
+        <motion.div 
+          className="drawing-page-container"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          {/* Conic Animations */}
+          <motion.div 
+            className="conic-animation-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          />
+          <motion.div 
+            className="conic-animation-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          />
 
-          {/* 그리기/업로드 영역 */}
-          <div className="flex justify-center mb-4"> {}
-            {mode === 'draw' ? (
-              <div className="w-full max-w-xl"> {}
-                <div className="w-[450px] h-[450px] mx-auto"> {}
-                  <ReactSketchCanvas
-                    ref={canvasRef}
-                    width="100%"
-                    height="100%"
-                    strokeWidth={4}
-                    strokeColor="black"
-                    backgroundImage=""
-                    exportWithBackgroundImage={true}
-                    className="border-2 border-gray-300 rounded-lg"
-                  />
-                </div>
-                <div className="flex justify-center gap-3 mt-4">
-                  <button
-                    onClick={handleUndo}
-                    className="w-32 h-10 bg-gray-200 rounded-lg font-medium
-                             hover:bg-gray-300 transition-colors duration-200"
-                  > {}
-                    ↩ 되돌리기
-                  </button>
-                  <button
-                    onClick={handleClear}
-                    className="w-34 h-10 bg-red-100 text-red-600 rounded-lg font-medium
-                             hover:bg-red-200 transition-colors duration-200"
-                  > {}
-                    🗑 모두 지우기
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full max-w-xl text-center"> {}
-                <div className="w-[450px] h-[450px] mx-auto border-2 border-gray-300 
-                              rounded-lg flex items-center justify-center">
-                  {}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="w-full max-w-md"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Content */}
+          <motion.div
+            variants={contentVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <motion.h1 
+              className="text-[64px] font-bold mb-8 text-white text-center"
+              style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)', fontFamily: 'Lustria, serif' }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 }} 
+            >
+              {getTitle()}
+            </motion.h1>
 
-          {/* 에러 메시지 */}
-          {error && (
-            <div className="text-red-500 text-center mb-3"> {}
-              {error}
+            {/* Mode Selection */}
+            <motion.div className="flex justify-center gap-4 mb-8">
+              {['draw', 'upload'].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m as 'draw' | 'upload')}
+                  className={`px-6 py-2 rounded-lg transition-all duration-200 
+                    ${mode === m ? 'bg-white text-[#DE523A]' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                >
+                  {m === 'draw' ? '✏️ 그리기' : '📁 업로드'}
+                </button>
+              ))}
+            </motion.div>
+
+            {/* Drawing/Upload Area */}
+            <div className="relative w-[900px] h-[500px] mx-auto">
+              {mode === 'draw' ? (
+                <div className="drawing-container relative">
+                  {/* ToolBar 컴포넌트 */}
+                  <motion.div 
+                    className="tools-container"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <button 
+                      onClick={() => setTool('pen')}
+                      className={`tool-button ${tool === 'pen' ? 'active' : ''}`}
+                    >
+                      🖌️
+                    </button>
+                    <button 
+                      onClick={() => setTool('eraser')}
+                      className={`tool-button ${tool === 'eraser' ? 'active' : ''}`}
+                    >
+                      🧽
+                    </button>
+                  </motion.div>
+                  {/* CustomCursor 컴포넌트 */}
+                  {tool === 'eraser' && (
+                    <div
+                      style={{
+                        position: 'fixed',
+                        left: cursorPosition.x - ERASER_SIZE,
+                        top: cursorPosition.y - ERASER_SIZE,
+                        width: ERASER_SIZE * 2,
+                        height: ERASER_SIZE * 2,
+                        border: '2px solid black',
+                        borderRadius: '50%',
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                      }}
+                    />
+                  )}
+
+                  <div className="drawing-area">
+                    <ReactSketchCanvas
+                      ref={canvasRef}
+                      width="100%"
+                      height="100%"
+                      strokeWidth={tool === 'pen' ? PEN_SIZE : ERASER_SIZE * 2}
+                      strokeColor={tool === 'pen' ? 'black' : 'white'}
+                      className={`bg-white rounded-[30px] ${tool === 'pen' ? 'pen-cursor' : ''}`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className={`upload-area ${isDragging ? 'dragging' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  {previewUrl ? (
+                    <div className="relative w-full h-full">
+                      <div className="w-full h-full bg-white rounded-[30px] overflow-hidden">
+                        <img 
+                          src={previewUrl} 
+                          alt="업로드된 이미지" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setPreviewUrl(null);
+                        }}
+                        className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full 
+                                  flex items-center justify-center shadow-md hover:bg-gray-100 
+                                  transition-all duration-200 border border-gray-200 z-10"
+                      >
+                        ❌
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer text-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileChange(file);
+                        }}
+                        className="hidden"
+                      />
+                      <div className="text-4xl mb-2">📁</div>
+                      <p className="text-gray-600 mb-2">
+                        클릭하여 이미지를 업로드하거나<br />
+                        이미지를 여기로 드래그하세요
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        지원 형식: JPG, PNG
+                      </p>
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
-          )}
 
-          {/* 제출 버튼 */}
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className={`w-32 h-10 bg-blue-500 text-white text-lg font-medium rounded-lg
-                     transition-colors duration-200 
-                     ${isLoading 
-                       ? 'opacity-50 cursor-not-allowed' 
-                       : 'hover:bg-blue-600'}`}
-          > {}
-            {isLoading ? '분석 중...' : '제출하기'} {}
-          </button>
-        </div>
+            {error && (
+              <div className="text-white text-center mt-4">{error}</div>
+            )}
+
+            <motion.div className="text-center mt-8">
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="submit-button"
+              >
+                {isLoading ? '분석 중...' : '분석결과 보러가기'}
+              </button>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
-);
+  );
 }
