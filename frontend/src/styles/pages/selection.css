@@ -1,0 +1,197 @@
+.gradient-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  perspective: 1200px;
+}
+
+/* Conic Animation 1 with Blur, Rotate, and Blend */
+.gradient-white {
+  position: absolute;
+  top: -535px;
+  bottom: 725px;
+  left: 50%;
+  transform-style: preserve-3d;
+  width: 823px;
+  height: 823px;
+  border-radius: 500px;
+  filter: blur(120px);
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+  transform: translateX(-50%);
+  animation: rotateEffect 6s linear infinite;
+}
+
+/* Base conic gradient with mirror effect */
+.gradient-white::before {
+  content: '';
+  position: absolute;
+  width: 823px;
+  height: 823px;
+  top: 0;
+  left: 0;
+  background: conic-gradient(from 0deg, 
+    rgba(0, 0, 0, 0.7),
+    rgba(255, 166, 64, 0.8),
+    rgba(252, 143, 76, 0.8)
+  );
+  border-radius: 50%;
+  opacity: 0.9;
+  transform: scale(0.8);
+  animation: mirrorEffect 2s cubic-bezier(0.38, 0.01, 0.99, 0.71) infinite;
+  overflow: hidden;
+}
+
+/* Conic Animation 2 with Blur and Rotate */
+.gradient-orange-light {
+  position: absolute;
+  top: -537px;
+  bottom: 727px;
+  left: 50%;
+  transform-style: preserve-3d;
+  width: 823px;
+  height: 823px;
+  border-radius: 500px;
+  filter: blur(120px);
+  opacity: 0.85;
+  transform: translateX(-50%);
+  animation: rotateEffect2 6s linear infinite;
+}
+
+/* Base conic gradient with mirror effect */
+.gradient-orange-light::before {
+  content: '';
+  position: absolute;
+  width: 823px;
+  height: 823px;
+  top: 0;
+  left: 0;
+  background: conic-gradient(from 0deg, 
+    rgba(255, 206, 143, 0.8),
+    rgba(230, 92, 18, 0.75),
+    rgba(255, 28, 28, 0.75)
+  );
+  border-radius: 50%;
+  opacity: 0.9;
+  transform: scale(0.8);
+  animation: mirrorEffect2 2s cubic-bezier(0.33, 0, 1, 0.69) infinite;
+  overflow: hidden;
+}
+
+/* Conic Animation 3 with Blur and Rotate */
+.gradient-orange-dark {
+  position: absolute;
+  top: -674px;
+  bottom: 590px;
+  left: 50%;
+  transform-style: preserve-3d;
+  width: 1097px;
+  height: 1097px;
+  border-radius: 500px;
+  filter: blur(120px);
+  opacity: 0.85;
+  transform: translateX(-50%);
+  animation: rotateEffect3 6s linear infinite;
+}
+
+/* Base conic gradient with mirror effect */
+.gradient-orange-dark::before {
+  content: '';
+  position: absolute;
+  width: 1097px;
+  height: 1097px;
+  top: 0;
+  left: 0;
+  background: conic-gradient(from 0deg, 
+    rgba(255, 128, 0, 0.75),
+    rgba(255, 173, 0, 0.75),
+    rgba(255, 195, 0, 0.75)
+  );
+  border-radius: 50%;
+  opacity: 0.9;
+  transform: scale(0.8);
+  animation: mirrorEffect3 2s cubic-bezier(0.29, 0, 1, 0.69) infinite;
+  overflow: hidden;
+}
+
+/* 3D Rotation Animations */
+@keyframes rotateEffect {
+  0% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 0deg) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 360deg) scale(1);
+    opacity: 0.85;
+  }
+}
+
+@keyframes rotateEffect2 {
+  0% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 0deg) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 360deg) scale(1);
+    opacity: 0.85;
+  }
+}
+
+@keyframes rotateEffect3 {
+  0% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 0deg) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(-50%) rotate3d(0, 0, 1, 360deg) scale(1);
+    opacity: 0.85;
+  }
+}
+
+/* Mirror Effect Animations */
+@keyframes mirrorEffect {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.8) rotate(180deg);
+  }
+  100% {
+    transform: scale(0.8) rotate(360deg);
+  }
+}
+
+@keyframes mirrorEffect2 {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.8) rotate(180deg);
+  }
+  100% {
+    transform: scale(0.8) rotate(360deg);
+  }
+}
+
+@keyframes mirrorEffect3 {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.8) rotate(180deg);
+  }
+  100% {
+    transform: scale(0.8) rotate(360deg);
+  }
+}
+
+/* 성능 최적화 */
+.gradient-white,
+.gradient-orange-light,
+.gradient-orange-dark {
+  opacity: 0;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
