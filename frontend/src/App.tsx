@@ -17,7 +17,7 @@ function App() {
           {/* 경로에 해당하는 컴포넌트 매핑 */}
           <Route path="/" element={<Home />} />
           <Route path="/select" element={<Selection />} />
-          <Route path="/draw/:type" element={<Drawing />} />
+          <Route path="/drawing/:type" element={<Drawing />} />
           <Route path="/result" element={<Result />} />
         </Routes>
       </BrowserRouter>
