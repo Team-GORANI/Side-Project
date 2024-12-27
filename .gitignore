@@ -58,3 +58,7 @@ z_mine/
 wandb/
 pths/
 Ultralytics/
+
+# Reflex files
+reflex_templates
+ai_image_gen

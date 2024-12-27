@@ -1,0 +1,9 @@
+# Cache files
+*.py[cod]
+*.db
+__pycache__/
+.web
+
+# Reflex files
+rxconfig.py
+assets
