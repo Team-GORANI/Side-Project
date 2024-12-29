@@ -5,7 +5,8 @@
 *.log
 lightning_logs
 *.csv
-
+*.db
+*.pt
 # Build and packaged files
 __pycache__
 dist
@@ -26,6 +27,7 @@ checkpoints/
 
 # Virtual environment files
 venv
+.venv
 .env
 .gradio
 
