@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "backend-gorani-side-project"
+version = "0.1.0"
+description = "Backend Gorani Side Project"
+authors = ["Taehan Kim <taehan5479@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.105.0"
+sqlalchemy = "^2.0.36"
+openai = "^1.58.1"
+uvicorn = "^0.34.0"
+ultralytics = "^8.3.55"
+numpy = "^1.26.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
