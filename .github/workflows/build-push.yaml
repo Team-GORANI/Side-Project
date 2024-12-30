@@ -8,8 +8,8 @@ on:
       - Feat17/CI_CD_test
 env:
   PROJECT_ID: ascendant-pad-445604-e1 # GCP 프로젝트 ID
-  REGION: ap-northeast3               # GCP 리전(서울)
-  ZONE: ap-northeast3-a               # GCP 존
+  REGION: asia-northeast3               # GCP 리전(서울)
+  ZONE: asia-northeast3-a               # GCP 존
   REPOSITORY: model-deploy            # Docker Artifact Registry 레포지토리 이름
   IMAGE: main                         # Docker 이미지 이름
   GCE_INSTANCE: gorani-back           # GCE 인스턴스 이름
