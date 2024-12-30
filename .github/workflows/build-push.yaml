@@ -2,10 +2,10 @@ name: Back-End Build & Push New Model
 on:
   push:
     branches:
-      - Feat17/CI_CD
+      - Feat17/CI_CD_test
   pull_request:
     branches:
-      - Feat17/CI_CD
+      - Feat17/CI_CD_test
 env:
   PROJECT_ID: ascendant-pad-445604-e1 # GCP 프로젝트 ID
   REGION: ap-norhteast3               # GCP 리전(서울)
@@ -23,7 +23,7 @@ jobs:
         run: |-
           docker build \
             --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
-            new/model_deploy
+            app
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v0.6.0'
