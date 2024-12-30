@@ -3,13 +3,9 @@ on:
   push:
     branches:
       - Feat17/CI_CD
-    paths:
-      - "app/**" # app 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
   pull_request:
     branches:
       - Feat17/CI_CD
-    paths:
-      - "app/**" # app 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
 env:
   PROJECT_ID: ascendant-pad-445604-e1 # GCP 프로젝트 ID
   REGION: ap-norhteast3               # GCP 리전(서울)
