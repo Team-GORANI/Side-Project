@@ -2,12 +2,12 @@ name: Back-End Build & Push New Model
 on:
   push:
     branches:
-      - main
+      - Feat17/CI_CD
     paths:
       - "app/**" # app 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
   pull_request:
     branches:
-      - main
+      - Feat17/CI_CD
     paths:
       - "app/**" # app 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
 env:
