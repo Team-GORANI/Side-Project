@@ -3,15 +3,15 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from openai import OpenAI
-from app.database import save_to_database, SessionLocal, DetectionResult
-from app.models.house_model import detect_houses
-from app.models.tree_model import detect_trees
-from app.models.person_model import detect_people
+from database import save_to_database, SessionLocal, DetectionResult
+from models.house_model import detect_houses
+from models.tree_model import detect_trees
+from models.person_model import detect_people
 
 # 분석 함수 매핑
-from app.models.house_func import analyze_house
-from app.models.person_func import analyze_person
-from app.models.tree_func import analyze_tree
+from models.house_func import analyze_house
+from models.person_func import analyze_person
+from models.tree_func import analyze_tree
 
 router = APIRouter()
 
