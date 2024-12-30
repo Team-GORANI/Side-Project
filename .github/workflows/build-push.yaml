@@ -13,23 +13,35 @@ env:
   REPOSITORY: model-deploy            # Docker Artifact Registry 레포지토리 이름
   IMAGE: main                         # Docker 이미지 이름
   GCE_INSTANCE: gorani-back           # GCE 인스턴스 이름
+  GCS_BUCKET: gorani-model-deploy       # GCS 버킷 이름
 
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: 'Docker build'
-        run: |-
-          docker build \
-            --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
-            app
+
+      # GCP 인증
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v0.6.0'
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
           token_format: 'access_token'
+
+      # GCS에서 모델 파일 다운로드
+      - name: 'Download model files from GCS'
+        run: |
+          gsutil cp gs://$GCS_BUCKET/house_model.pt /app/models/house_model.pt
+          gsutil cp gs://$GCS_BUCKET/person_model.pt /app/models/person_model.pt
+          gsutil cp gs://$GCS_BUCKET/tree_model.pt /app/models/tree_model.pt
+      
+      # Docker 이미지 빌드
+      - name: 'Docker build'
+        run: |-
+          docker build \
+            --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
+            app
 
       - uses: 'docker/login-action@v1'
         name: 'Docker login'
