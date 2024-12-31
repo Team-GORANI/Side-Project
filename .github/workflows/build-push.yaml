@@ -31,6 +31,8 @@ jobs:
 
       # GCS에서 모델 파일 다운로드
       - name: 'Download model files from GCS'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: '${{ secrets.GCP_CREDENTIALS }}'
         run: |
           gsutil cp gs://$GCS_BUCKET/house_model.pt /app/models/house_model.pt
           gsutil cp gs://$GCS_BUCKET/person_model.pt /app/models/person_model.pt
