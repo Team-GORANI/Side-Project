@@ -23,21 +23,23 @@ RUN pip install --no-cache-dir --upgrade pip && \
     --index-url https://pypi.org/simple \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
-RUN pip install ultralytics
+# Ensure models directory exists
+RUN mkdir -p /app/models
 
-# Copy model files first
-COPY ./models/checkpoint /app/models/checkpoint
-COPY ./models /app/models
+# Copy application files
+COPY ./models /app/models/
 
 # Then copy the rest of the application
-COPY . /app
+COPY . /app/
 
 # Set environment variables
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 ENV UVICORN_RELOAD=false
 
 # Contatiner status checker : Job schedular
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]
