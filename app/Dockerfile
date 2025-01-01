@@ -1,11 +1,11 @@
-FROM python:3.12.3 as requirements-stage
+FROM python:3.9-slim as requirements-stage
 
 WORKDIR /tmp
 RUN pip install poetry
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-FROM python:3.12.3-slim
+FROM python:3.9-slim
 
 WORKDIR /app
 
@@ -23,8 +23,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
     --index-url https://pypi.org/simple \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
+RUN pip install ultralytics
+
+# Copy model files first
+COPY ./checkpoint /app/checkpoint
 COPY ./models /app/models
+
+# Then copy the rest of the application
 COPY . /app
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV UVICORN_RELOAD=false
 
 # Contatiner status checker : Job schedular
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
