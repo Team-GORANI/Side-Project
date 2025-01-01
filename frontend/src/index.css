@@ -23,3 +23,68 @@ body {
   width: 100%;
   height: 100vh;
 }
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px); /* 위에서 아래로 애니메이션 */
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* index.css 또는 적절한 CSS 파일에 추가 */
+@keyframes rotateLoop {
+  0% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(350deg);
+  }
+}
+.in-view {
+  animation: appear 2s ease-out forwards;
+}
+
+/* 수정된 애니메이션: 회전 없이 나타나게 하기 */
+@keyframes appear {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8) blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) blur(0);
+  }
+}
+@keyframes loopRotate {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
+.animate-loop {
+  animation: loopRotate 8s linear infinite;
+}
+
+/* in-view 클래스에서 rotate 관련 애니메이션을 제거 */
+.in-view {
+  animation: appear 2s ease-out forwards;
+}
+
+/* fade-in 효과 */
+.fade-in {
+  animation: fadeInUp 1.2s ease-out forwards;
+}
+.relative.mt-32.flex.justify-center {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-top: 8rem; /* mt-32 */
+}
