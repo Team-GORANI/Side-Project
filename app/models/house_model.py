@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-house_model = YOLO("models/house_model.pt")
+house_model = YOLO("./models/house_model.pt")
 
 def detect_houses(image_path: str) -> list:
     """
