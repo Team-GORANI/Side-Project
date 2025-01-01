@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation,useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { analyzeImage } from '../services/api';
 import '../styles/pages/drawing.css';
@@ -41,6 +41,7 @@ export default function Drawing() {
   // 캔버스 참조
   const canvasRef = useRef<ReactSketchCanvasRef>(null);
 
+
   // type 유효성 검사
   const validateType = (param: string | undefined): DrawingType => {
     if (!param || !['house', 'tree', 'person'].includes(param)) {
@@ -59,6 +60,18 @@ export default function Drawing() {
       default: return 'Draw Your House!';
     }
   };
+  
+  const getLabel = () => {
+    switch (validatedType) {
+      case 'house': return '집';
+      case 'tree': return '나무';
+      case 'person': return '사람';
+      default: return '알 수 없음';
+    }
+  };
+  
+  const label = getLabel(); // label 추출
+  
 
   // CustomCursor 
   useEffect(() => {
@@ -87,7 +100,6 @@ export default function Drawing() {
   // 파일 처리 함수
   const handleFileChange = (file: File) => {
     setUploadedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -108,6 +120,7 @@ export default function Drawing() {
       handleFileChange(file);
     }
   };
+  
 
   // 제출 핸들러
   const handleSubmit = async () => {
@@ -115,16 +128,33 @@ export default function Drawing() {
       setIsLoading(true);
       setError(null);
 
-      const imageData = mode === 'draw'
-        ? await canvasRef.current?.exportImage('png')
-        : uploadedFile;
+      let imageBase64 = '';
+      if (mode === 'draw') {
+        // 캔버스 이미지를 Base64 형식으로 가져오기
+        imageBase64 = await canvasRef.current?.exportImage('png') ?? '';
+      } else if (uploadedFile) {
+        // 업로드된 파일을 Base64로 변환
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            localStorage.setItem('uploadedImage', reader.result); // 로컬 스토리지에 저장
+            navigate('/result', { state: { label, image: reader.result } }); // label과 image 전달
+        }
+      };
+          
+        reader.readAsDataURL(uploadedFile);
+        return;
+      }
 
-      if (!imageData) {
+      if (!imageBase64) {
         throw new Error(mode === 'draw' ? '그림을 그려주세요' : '파일을 선택해주세요');
       }
 
-      const result = await analyzeImage(imageData, validatedType);
-      navigate('/result', { state: { result } });
+      // 로컬 스토리지에 이미지 저장
+      localStorage.setItem('drawnImage', imageBase64);
+
+      // 결과 페이지로 이동
+      navigate('/result', { state: { label, image: imageBase64 } }); // label과 image 전달
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다');
     } finally {

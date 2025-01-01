@@ -50,9 +50,10 @@ export default function Selection() {
   };
 
   // 선택한 옵션의 그리기 페이지로 이동
-  const handleOptionSelect = (optionId: string) => {
-    navigate(`/drawing/${optionId}`);
+  const handleOptionSelect = (optionId: string, label: string) => {
+  navigate(`/drawing/${optionId}`, { state: { label } }); // `state`로 label 전달
   };
+
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-gray-50">

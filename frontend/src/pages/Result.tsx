@@ -1,69 +1,235 @@
-// src/pages/Result.tsx
+import React, { useEffect, useRef,useState } from 'react';
+import { motion } from 'framer-motion'; // framer-motion 추가
+import { useLocation } from 'react-router-dom';
+import { Navbar } from '../components/Navbar';
 
-// 라우팅을 위한 네비게이션 훅
-import { useLocation, useNavigate } from 'react-router-dom';
+const Result: React.FC = () => {
+  const location = useLocation();
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  const label = location.state?.label || ' '; // 전달된 label 읽기
 
-export default function Result() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
-  
-  // state가 없는 경우 예외처리
-  if (!state?.result) {
-    return (
-      // 에러 메시지
-      <div className="p-8 text-center">
-        <p className="text-red-500">분석 결과를 찾을 수 없습니다.</p>
-        {/* 처음으로 돌아가기 버튼 */}
-        <button 
-          onClick={() => navigate('/')}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          처음으로 돌아가기
-        </button>
-      </div>
-    );
-  }
+  // 전달된 이미지 데이터 가져오기
+  const [image, setImage] = useState<string | null>(null);
 
-  const { result } = state;
+  useEffect(() => {
+    // 로컬 스토리지에서 이미지 가져오기
+    const drawnImage = localStorage.getItem('drawnImage');
+    const uploadedImage = localStorage.getItem('uploadedImage');
+
+    if (drawnImage) {
+      setImage(drawnImage);
+    } else if (uploadedImage) {
+      setImage(uploadedImage);
+    }
+  }, []);
+  // 애니메이션 variants
+  const gradientVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+  };
+  // 애니메이션 variants
+  const textVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
 
   return (
-    // 결과 페이지 컨테이너
-    <div className="p-8 max-w-4xl mx-auto">
-      {/* 페이지 타이틀 */}
-      <h1 className="text-2xl font-bold mb-8 text-center">분석 결과</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 원본 이미지 섹션 */}
-        <div className="border rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-4">업로드한 이미지</h2>
-          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-            <img 
-              src={result.originalImage} 
-              alt="Original" 
-              className="w-full h-full object-contain"
+    <div className="w-full h-screen overflow-y-scroll">
+      {/* 상단 네비게이션 바 */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Navbar link="/" />
+      </div>
+
+      {/* 위 섹션 */}
+      <motion.section
+        className="relative flex justify-center items-center h-screen bg-white"
+        initial="hidden"
+        animate="visible"
+        transition={{ staggerChildren: 0.3 }}
+      >
+        {/* 배경 그라데이션 
+          - 세 개의 레이어로 구성된 동적 그라데이션 */}
+      <div className="absolute top-0 left-0 right-0 h-screen overflow-hidden">
+        <div className="gradient-container">
+          {['white', 'orange-light', 'orange-dark'].map((color) => (
+            <motion.div
+              key={color}
+              className={`gradient-${color}`}
+              initial="hidden"
+              animate="visible"
+              variants={gradientVariants}
+              transition={{ duration: 1, delay: 0.3 }}
             />
-          </div>
-        </div>
-        
-        {/* 분석 결과 섹션 */}
-        <div className="border rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-4">심리 분석 결과</h2>
-          <div className="prose">
-            <p className="text-gray-700 whitespace-pre-line">
-              {result.analysis}
-            </p>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* 다시 시작하기 버튼 */}
-      <div className="mt-8 text-center">
-        <button 
-          onClick={() => navigate('/')}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        {/* 텍스트 섹션 */}
+        <div className="absolute top-20 left-20">
+          
+        <motion.h1
+            className="text-6xl font-bold italic"
+            style={{
+              fontFamily: 'Sansita Swashed, sans-serif',
+              color: '#3B3B3B',
+            }}
+            variants={textVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.6, delay: 1.2 }}
+          >
+            HTP Test Result
+          </motion.h1>
+          <motion.p
+            className="mt-8 text-lg"
+            style={{
+              fontFamily: 'Sansita Swashed, sans-serif',
+              color: '#3B3B3B',
+            }}
+            variants={textVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.6, delay: 1.4 }}
+          >
+            {`${label} 그림으로 심리를 분석한 결과입니다.`}
+          </motion.p>
+        </div>
+
+        {/* 그림 영역 */}
+        <motion.div
+          className="relative mt-32 flex justify-center"
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.6, delay: 1.6 }}
         >
-          다시 시작하기
-        </button>
-      </div>
+          {image ? (
+            <img
+              src={image} // 전달받은 이미지 렌더링
+              alt="Analysis Result"
+              className="rounded-lg shadow-lg"
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                margin: '0 auto',
+              }}
+            />
+          ) : (
+            <p>이미지가 없습니다.</p> // 이미지가 없는 경우 표시
+          )}
+        </motion.div>
+      </motion.section>
+
+
+      {/* 아래 섹션 */}
+      <motion.section
+        className="h-[85vh] bg-white flex justify-center items-center mt-[-250px]"
+        initial="hidden"
+        animate="visible"
+        variants={textVariants}
+        transition={{ staggerChildren: 0.3, delayChildren: 1.8 }}
+      >
+        {/* 왼쪽 섹션 */}
+        <div className="flex flex-col space-y-30 text-left w-2/5">
+          <motion.div variants={textVariants}>
+            <p
+              style={{
+                fontFamily: 'Recoleta Alt, sans-serif',
+                color: '#5C6470',
+                fontSize: '18px',
+              }}
+            >
+              keyword
+            </p>
+            <h2
+              style={{
+                fontFamily: 'Instrument Sans, sans-serif',
+                color: '#2E3238',
+                fontSize: '28px',
+                marginTop: '8px',
+              }}
+            >
+              현실적
+            </h2>
+          </motion.div>
+
+          <motion.div variants={textVariants}>
+            <p
+              style={{
+                fontFamily: 'Recoleta Alt, sans-serif',
+                color: '#5C6470',
+                fontSize: '18px',
+              }}
+            >
+              keyword
+            </p>
+            <h2
+              style={{
+                fontFamily: 'Instrument Sans, sans-serif',
+                color: '#2E3238',
+                fontSize: '28px',
+                marginTop: '8px',
+              }}
+            >
+              안정성
+            </h2>
+          </motion.div>
+
+          <motion.div variants={textVariants}>
+            <p
+              style={{
+                fontFamily: 'Recoleta Alt, sans-serif',
+                color: '#5C6470',
+                fontSize: '18px',
+              }}
+            >
+              keyword
+            </p>
+            <h2
+              style={{
+                fontFamily: 'Instrument Sans, sans-serif',
+                color: '#2E3238',
+                fontSize: '28px',
+                marginTop: '8px',
+              }}
+            >
+              심리적 억압
+            </h2>
+          </motion.div>
+        </div>
+
+        {/* 오른쪽 섹션 */}
+        <div className="flex flex-col space-y-5 text-left w-2/5">
+          <motion.h2
+            style={{
+              fontFamily: 'Lustria, serif',
+              textTransform: 'capitalize',
+              fontSize: '28px',
+              color: '#2E3238',
+            }}
+            variants={textVariants}
+          >
+            HOUSE Drawing Analysis
+          </motion.h2>
+
+          {['🔅 성격 특징 🔅', '🌤️ 대인 관계 🌤️', '🧘 현재 심리 상태 🧘', '💪 멘탈 케어 Tips 💪'].map((text, index) => (
+            <motion.div
+              key={index}
+              variants={textVariants}
+              style={{
+                fontFamily: 'Sansita Swashed, sans-serif',
+                fontSize: '24px',
+                color: '#3B3B3B',
+              }}
+            >
+              {text}
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
     </div>
   );
-}
+};
+
+export default Result;
