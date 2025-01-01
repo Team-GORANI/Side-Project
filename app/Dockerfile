@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN pip install ultralytics
 
 # Copy model files first
-COPY ./checkpoint /app/checkpoint
+COPY ./models/checkpoint /app/models/checkpoint
 COPY ./models /app/models
 
 # Then copy the rest of the application
