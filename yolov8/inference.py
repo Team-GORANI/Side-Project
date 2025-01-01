@@ -1,6 +1,6 @@
 import torch
 import cv2
-import json
+import sqlite3
 from pathlib import Path
 from ultralytics import YOLO
 import argparse
@@ -21,13 +21,27 @@ CATEGORY_LABELS = {
     ]
 }
 
-CATEGORY_MODELS = {
-    "house": "./best_house.pt",
-    "person": "./best_person.pt",
-    "tree": "./best_tree.pt"
-}
+def create_database(db_path):
+    """데이터베이스와 테이블 생성"""
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
 
-# Inference function
+    # detections 테이블 생성
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS detections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            x INTEGER NOT NULL,
+            y INTEGER NOT NULL,
+            w INTEGER NOT NULL,
+            h INTEGER NOT NULL,
+            img_id TEXT NOT NULL
+        )
+    ''')
+
+    conn.commit()
+    return conn
+
 def infer_and_save(image_path, category):
     # Validate category
     if category not in CATEGORY_LABELS:
@@ -46,62 +60,44 @@ def infer_and_save(image_path, category):
     img_name = Path(image_path).stem
 
     # Automatically set output path
-    output_path = f"output_{category}_{img_name}.json"
+    db_path = f"output_{category}_{img_name}.db"
+
+    # Create DB table
+    conn = create_database(db_path)
+    c = conn.cursor()
 
     # Inference
     results = model(image_path)
 
     # Extract detections
-    detections = results[0].boxes  # Directly access the Boxes object
-    boxes = detections.xyxy.cpu().numpy()  # [x1, y1, x2, y2] coordinates
-    confs = detections.conf.cpu().numpy()  # Confidence scores
-    classes = detections.cls.cpu().numpy().astype(int)  # Class indices
+    detections = results[0].boxes
+    boxes = detections.xyxy.cpu().numpy()
+    classes = detections.cls.cpu().numpy().astype(int)
 
     # Build annotations
-    annotations = {
-        "anno_id": "unique_annotation_id",  # Replace with actual ID generator if needed
-        "class": category,  # Add category as class in annotations
-        "bbox_count": len(boxes),
-        "bbox": []
-    }
-
-    for box, conf, cls in zip(boxes, confs, classes):
+    for box, cls in zip(boxes, classes):
         x1, y1, x2, y2 = box
         label = labels[cls] if cls < len(labels) else "Unknown"
-        annotations["bbox"].append({
-            "label": label,
-            "x": int(x1),
-            "y": int(y1),
-            "w": int(x2 - x1),
-            "h": int(y2 - y1)
-        })
 
-    # Build meta data
-    meta = {
-        "img_id": img_name,
-        "contributor": "",
-        "date_created": "",
-        "img_path": image_path,
-        "label_path": "",
-        "img_size": img.size if img is not None else 0,
-        "img_resolution": f"{img.shape[1]}x{img.shape[0]}" if img is not None else "",
-        "age": "",
-        "sex": ""
-    }
+        # DB에 데이터 삽입
+        c.execute('''
+            INSERT INTO detections (label, x, y, w, h, img_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            label,
+            int(x1),
+            int(y1),
+            int(x2 - x1),
+            int(y2 - y1),
+            img_name
+        ))
 
-    # Combine results
-    result = {
-        "meta": meta,
-        "annotations": annotations,
-    }
+    # 변경사항 저장 및 연결 종료
+    conn.commit()
+    conn.close()
 
-    # Save to JSON
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(result, f, ensure_ascii=False, indent=4)
+    print(f"Results saved to {db_path}")
 
-    print(f"Results saved to {output_path}")
-
-# Main function
 def main():
     parser = argparse.ArgumentParser(description="Unified Inference Script")
     parser.add_argument("--image", type=str, required=True, help="Path to the input image")
