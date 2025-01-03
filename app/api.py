@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+import os
 
 from openai import OpenAI
 from database import save_to_database, SessionLocal, DetectionResult
@@ -53,7 +54,7 @@ person_label = {
     14: "단추",
     15: "주머니",
     16: "운동화",
-    17: "남자구두"
+    17: "구두"
 }
 
 # tree label
@@ -122,97 +123,125 @@ def parse_bboxes(yolo_raw_boxes, image_type):
                 "w": float(w),
                 "h": float(h),
                 "confidence": float(bbox[4]),
-                "label": tree_labe[int(bbox[5])]
+                "label": tree_label[int(bbox[5])]
             })
     return parsed
 
 @router.post("/detect")
-async def detect_objects(request: ImageRequest):
-    """
-    1) image_type을 보고 해당 YOLO 모델 사용 (house/tree/person)
-    2) 탐지 결과의 bbox를 (h, w, x, y) 형태로 파싱
-    3) DB에 저장
-    4) 결과를 반환
-    """
+async def detect_image(
+    image: UploadFile = File(...),
+    type: str = Form(...)
+):
     try:
-        image_type = request.image_type.lower()
-        image_path = request.image_path
+        # 임시 파일로 저장
+        contents = await image.read()
+        image_path = f"temp/{image.filename}"
+        with open(image_path, "wb") as f:
+            f.write(contents)
+        
+        try:
+            formatted_boxes = []
+            
+            # 객체 감지 수행
+            if type == "house":
+                boxes = detect_houses(image_path)
+                detect_func = analyze_house
+                label_dict = house_label 
+            elif type == "tree":
+                boxes = detect_trees(image_path)
+                detect_func = analyze_tree
+                label_dict = tree_label
+            elif type == "person":
+                boxes = detect_people(image_path)
+                detect_func = analyze_person
+                label_dict = person_label
+            else:
+                return {"status": "error", "message": "Invalid type"}
 
-        if image_type == "house":
-            raw_results = detect_houses(image_path)
-            parsed_results = parse_bboxes(raw_results, image_type)
-        elif image_type == "tree":
-            raw_results = detect_trees(image_path)
-            parsed_results = parse_bboxes(raw_results, image_type)
-        elif image_type == "person":
-            raw_results = detect_people(image_path)
-            parsed_results = parse_bboxes(raw_results, image_type)
-        else:
-            raise ValueError("image_type은 house, tree, person 중 하나여야 합니다.")
+            # boxes 형식 검증 및 변환
+            if isinstance(boxes, list):
+                formatted_boxes = [
+                    {
+                        "label": label_dict[int(box[5])],
+                        "x": float(box[0]),
+                        "y": float(box[1]),
+                        "w": float(box[2] - box[0]),
+                        "h": float(box[3] - box[1])
+                    }
+                    for box in boxes
+                ]
+                
+                # YOLO 분석
+                yolo_analysis = detect_func(formatted_boxes)
+                
+                # GPT 분석
+                gpt_result = await analyze_drawing(image_path, formatted_boxes, type)
+                
+                # 분석 결과 처리
+                if gpt_result and "gpt_result" in gpt_result:
+                    analysis_text = gpt_result["gpt_result"]
+                else:
+                    analysis_text = yolo_analysis if isinstance(yolo_analysis, str) else "\n".join(yolo_analysis)
 
-        detection_data = { image_type: parsed_results }
+            else:
+                analysis_text = f"No {type} objects detected"
 
-        save_to_database(image_path, detection_data)
+            # 임시 파일 삭제
+            if os.path.exists(image_path):
+                os.remove(image_path)
 
-        return {
-            "status": "success",
-            "image_path": image_path,
-            "results": detection_data
-        }
+            return {
+                "status": "success",
+                "analysis": analysis_text,
+                "boxes": formatted_boxes
+            }
+
+        except Exception as analysis_error:
+            print(f"Analysis error: {str(analysis_error)}")
+            if os.path.exists(image_path):
+                os.remove(image_path)
+            return {
+                "status": "error",
+                "message": "이미지 분석 중 오류가 발생했습니다.",
+                "error": str(analysis_error)
+            }
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+        print(f"Error: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 ##############################
 # 2) GPT 분석 관련 코드
 ##############################
+from dotenv import load_dotenv
+load_dotenv() 
 
-# (1) OpenAI API 키 설정 (실제 서비스 시 보안을 위해 환경변수 사용 권장)
-api_key = "your_api_key"
-client = OpenAI(api_key=api_key)
+# OpenAI API 키 설정 수정
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 @router.get("/analysis/{image_path:path}")
-async def analyze_image(image_path: str):
+async def analyze_drawing(image_path: str, boxes: list, type: str):
     """
-    1) DB에서 image_path에 해당하는 탐지 결과 조회
-    2) 탐지 결과(예: house, tree, person 각각의 bbox) 분석: 바운딩 박스 면적이 큰지 작은지 등
-    3) GPT API를 통해 HTP 해석 프롬프트 전송
-    4) 결과 반환
+    1) 탐지 결과 분석
+    2) GPT API를 통해 HTP 해석 프롬프트 전송
+    3) 결과 반환
     """
     try:
-        # 1) DB에서 결과 조회
-        session = SessionLocal()
-        db_entry = session.query(DetectionResult).filter_by(image_path=image_path).first()
-        session.close()
-
-        if not db_entry:
-            raise HTTPException(status_code=404, detail=f"해당 {image_path}가 DB에 없습니다.")
-
-        detection_data = db_entry.results
-
-        # 2) '크다/작다' 간단 분석
+        # 특징 분석
         feature_list = []
-
-        for cls_name, bboxes in detection_data.items():
-            if cls_name == "house":
-                # House 분석
-                house_results = analyze_house(bboxes)  # bboxes는 DB에서 가져온 바운딩 박스 데이터
-                feature_list.extend(house_results)
-
-            elif cls_name == "person":
-                # Person 분석
-                person_results = analyze_person(bboxes)  # bboxes 전달
-                feature_list.extend(person_results)
-
-            elif cls_name == "tree":
-                # Tree 분석
-                tree_results = analyze_tree(bboxes)  # bboxes 전달
-                feature_list.extend(tree_results)
+        
+        # 각 타입별 분석 수행
+        if type == "house":
+            feature_list.extend(analyze_house(boxes))
+        elif type == "tree":
+            feature_list.extend(analyze_tree(boxes))
+        elif type == "person":
+            feature_list.extend(analyze_person(boxes))
 
         # GPT에 전달할 문자열 생성
         features_str = "\n".join(feature_list)
 
-        # (3-1) system_prompt
+        # system_prompt (기존 코드 유지)
         system_prompt = """You are a professional HTP psychologist and mental health counselor.
         Analyze both current psychological state and developmental influences through drawing features.
         Provide detailed analysis by connecting specific drawing features to psychological interpretations. 
@@ -222,20 +251,10 @@ async def analyze_image(image_path: str):
         - Only use emojis that are specifically defined in section headers
         """
 
-        # (3-2) user_prompt
-        # 이미지 경로에 "house", "tree", "person" 문자열이 포함되면 그걸로 drawing_type을 결정
-        drawing_type = "HTP"
-        lower_path = image_path.lower()
-        if "house" in lower_path:
-            drawing_type = "house"
-        elif "tree" in lower_path:
-            drawing_type = "tree"
-        elif "person" in lower_path:
-            drawing_type = "person"
-
+        # user_prompt (기존 코드 유지)
         user_prompt = f"""
         === HTP Analysis Request ===
-        Drawing Type: {drawing_type.upper()}
+        Drawing Type: {type.upper()}
         Features Detected:
         {features_str}
 
@@ -269,13 +288,6 @@ async def analyze_image(image_path: str):
         - Stress management suggestions
         - Provide practical suggestions
         - Growth potential
-
-        Analysis guidelines:
-        - Start content immediately after each section title
-        - Write clear and concise paragraphs
-        - Translate coordinates into descriptive terms
-        - Include practical advice
-        - Maintain a supportive tone
         """
 
         # (3-3) 최신 openai >= 1.0.0 방식
@@ -295,14 +307,12 @@ async def analyze_image(image_path: str):
 
         gpt_answer = response.choices[0].message.content.strip()
 
-        # 4) 최종 결과 반환
         return {
             "status": "success",
             "features_analyzed": feature_list,
             "gpt_result": gpt_answer
         }
 
-    except HTTPException as e:
-        raise e
     except Exception as e:
+        print(f"GPT Analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

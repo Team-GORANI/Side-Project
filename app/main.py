@@ -19,6 +19,10 @@ app.add_middleware(
     allow_headers=["*"],                     # 모든 HTTP 헤더 허용
 )
 
+# temp 디렉토리가 없으면 생성
+if not os.path.exists("temp"):
+    os.makedirs("temp")
+
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Server is running"}
