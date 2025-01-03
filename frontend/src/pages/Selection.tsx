@@ -145,7 +145,7 @@ export default function Selection() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOptionSelect(option.id);
+                        handleOptionSelect(option.id, option.label);
                       }}
                       className="flex items-center justify-between 
                                 bg-[#0D3272] text-white rounded-[20px]
