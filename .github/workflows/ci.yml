@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, deployment ]
+  pull_request:
+    branches: [ main, deployment ]
+
+jobs:
+  backend-validate:
+    name: Validate Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry --version
+
+    - name: Validate Poetry Configuration
+      run: |
+        poetry env use python${{ matrix.python-version }}
+        poetry check
+        poetry lock --check
+
+    - name: Validate Backend Dockerfile
+      run: |
+        docker build . --file Dockerfile
+
+  frontend-validate:
+    name: Validate Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Validate Frontend Dockerfile
+      run: |
+        docker build . --file Dockerfile
+
+  docker-compose-test:
+    name: Test Docker Compose
+    needs: [backend-validate, frontend-validate]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build and test docker-compose
+      run: |
+        docker-compose build
+        docker-compose up -d
+        docker-compose ps
+        sleep 10
+        curl -f http://localhost:8000/
+        docker-compose down
