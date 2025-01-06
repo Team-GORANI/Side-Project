@@ -15,31 +15,11 @@
 5. 모두 그렸다면 "분석결과 보러가기"를 누르고, 심리 상담 결과를 확인해보세요.
 
 
-``` mermaid
-graph LR
-    subgraph Docker["Docker Compose"]
-        subgraph FE["React"]
-            React["React App]
-        end
-
-        subgraph BE["FastAPI"]
-            FastAPI["FastAPI Server"]
-            Models["ML Models"]
-        end
-
-        React -->|HTTP Requests| FastAPI
-        FastAPI -->|JSON Response| React
-        FastAPI -->|Inference| Models
-    end
-
-    style Docker fill:#e7f7ff,stroke:#333
-    style FE fill:#f9f9f9,stroke:#666
-    style BE fill:#f9f9f9,stroke:#666
-```
 
 ## ✨ Features
 - Full-stack app : React, FastAPI, SQL, GCP
 - 이미지를 분석하고, 이를 활용한 심리 상담 결과를 제공합니다. 심리 상담에는 GPT가 사용됩니다.
+
 
 ## ➕ Prerequisites
 - Python 3.9 or higher
@@ -47,6 +27,7 @@ graph LR
 - Model : ultralytics
 - DB : sqlalchemy
 - LLM : openai
+
 
 ## 🚩 How to use?
 
