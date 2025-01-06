@@ -1,92 +1,41 @@
-name: CI/CD Pipeline
+# Step 1. Install Dependency
+FROM python:3.12.3 as requirements-stage
 
-on:
-  push:
-    branches: [ main, deployment ]
-  pull_request:
-    branches: [ main, deployment ]
+WORKDIR /tmp
 
-jobs:
-  backend-validate:
-    name: Validate Backend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./app
+# Poetry 설치 및 설정
+RUN pip install poetry==1.7.1 && \
+    poetry config virtualenvs.create false
 
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12']
+# 프로젝트 파일 복사 및 requirements.txt 생성
+COPY ./pyproject.toml ./poetry.lock* /tmp/
+RUN python -m poetry install --no-interaction --no-root && \
+    python -m poetry export --format requirements.txt --output requirements.txt --without-hashes
 
-    steps:
-    - uses: actions/checkout@v3
+# Step 2. Build app dependency
+FROM python:3.12.3-slim
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+WORKDIR /app
 
-    - name: Install Poetry
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install poetry
-        poetry --version
+# Build initial setup
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-    - name: Configure Poetry PATH
-      run: |
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+# Install system package
+COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt \
+    --index-url https://pypi.org/simple \
+    --extra-index-url https://download.pytorch.org/whl/cpu
 
-    - name: Validate Poetry Configuration
-      run: |
-        python -m poetry env use python${{ matrix.python-version }}
-        python -m poetry check
-        python -m poetry lock --check
+COPY ./models /app/models
+COPY . /app
 
-    - name: Validate Backend Dockerfile
-      run: |
-        docker build . --file Dockerfile
+# Container status checker : Job scheduler
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
 
-  frontend-validate:
-    name: Validate Frontend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json'
-
-    - name: Install Dependencies
-      run: npm ci
-
-    - name: Validate Frontend Dockerfile
-      run: |
-        docker build . --file Dockerfile
-
-  docker-compose-test:
-      name: Test Docker Compose
-      needs: [backend-validate, frontend-validate]
-      runs-on: ubuntu-latest
-
-      steps:
-      - uses: actions/checkout@v3
-
-      - name: Install curl
-        run: sudo apt-get update && sudo apt-get install -y curl
-
-      # Docker Compose V2
-      - name: Build and test docker compose
-        run: |
-          docker compose build
-          docker compose up -d
-          docker compose ps
-          sleep 10
-          curl -f http://localhost:8000/
-          docker compose down
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
