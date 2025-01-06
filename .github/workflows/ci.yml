@@ -28,14 +28,19 @@ jobs:
 
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python3 -
+        python -m pip install --upgrade pip
+        python -m pip install poetry
         poetry --version
+
+    - name: Configure Poetry PATH
+      run: |
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Validate Poetry Configuration
       run: |
-        poetry env use python${{ matrix.python-version }}
-        poetry check
-        poetry lock --check
+        python -m poetry env use python${{ matrix.python-version }}
+        python -m poetry check
+        python -m poetry lock --check
 
     - name: Validate Backend Dockerfile
       run: |
@@ -76,12 +81,12 @@ jobs:
       - name: Install curl
         run: sudo apt-get update && sudo apt-get install -y curl
 
-    # Docker Compose V2
-    - name: Build and test docker compose
-      run: |
-        docker compose build
-        docker compose up -d
-        docker compose ps
-        sleep 10
-        curl -f http://localhost:8000/
-        docker compose down
+      # Docker Compose V2
+      - name: Build and test docker compose
+        run: |
+          docker compose build
+          docker compose up -d
+          docker compose ps
+          sleep 10
+          curl -f http://localhost:8000/
+          docker compose down

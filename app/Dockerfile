@@ -1,9 +1,18 @@
 FROM python:3.12.3 as requirements-stage
 
 WORKDIR /tmp
-RUN pip install poetry
+
+# Poetry 설치 및 설정
+RUN pip install --no-cache-dir poetry==1.7.1 && \
+    poetry config virtualenvs.create false && \
+    poetry config installer.max-workers 10
+
+# 프로젝트 파일 복사
 COPY ./pyproject.toml ./poetry.lock* /tmp/
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+# requirements.txt 생성
+RUN python -m poetry install --no-interaction --no-root && \
+    python -m poetry export --format requirements.txt --output requirements.txt --without-hashes
 
 FROM python:3.12.3-slim
 
