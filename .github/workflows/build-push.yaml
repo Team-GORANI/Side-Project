@@ -42,22 +42,25 @@ jobs:
       # 현재 디렉토리에 models 폴더 생성
       - name: 'Create models directory'
         run: |
-          sudo mkdir -p /app/models
-          sudo chmod 777 /app/models
+          sudo mkdir -p ./app/models
+          sudo chmod 777 ./app/models
 
       # GCS에서 모델 파일 다운로드
       - name: 'Download model files from GCS'
         run: |
-          gsutil cp gs://$GCS_BUCKET/house_model.pt /app/models/house_model.pt
-          gsutil cp gs://$GCS_BUCKET/person_model.pt /app/models/person_model.pt
-          gsutil cp gs://$GCS_BUCKET/tree_model.pt /app/models/tree_model.pt
+          gsutil cp gs://$GCS_BUCKET/house_model.pt ./app/models/house_model.pt
+          gsutil cp gs://$GCS_BUCKET/person_model.pt ./app/models/person_model.pt
+          gsutil cp gs://$GCS_BUCKET/tree_model.pt ./app/models/tree_model.pt
+          
+      - name: 'Verify model files'
+        run: ls -l app/models/
       
       # Docker 이미지 빌드
       - name: 'Docker build'
         run: |-
           docker build \
             --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
-            app
+            ./app
 
       - uses: 'docker/login-action@v1'
         name: 'Docker login'
