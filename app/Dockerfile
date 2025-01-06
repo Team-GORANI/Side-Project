@@ -3,9 +3,8 @@ FROM python:3.12.3 as requirements-stage
 WORKDIR /tmp
 
 # Poetry 설치 및 설정
-RUN pip install --no-cache-dir poetry==1.7.1 && \
-    poetry config virtualenvs.create false && \
-    poetry config installer.max-workers 10
+RUN pip install poetry==1.7.1 && \
+    poetry config virtualenvs.create false
 
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 

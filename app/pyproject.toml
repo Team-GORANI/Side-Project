@@ -1,10 +1,27 @@
+# Old Version
 [tool.poetry]
 name = "backend-gorani-side-project"
 version = "0.1.0"
 description = "Backend Gorani Side Project"
-authors = ["Taehan Kim <taehan5479@gmail.com>"]
+authors = [
+    "Taehan Kim <taehan5479@gmail.com>",
+    "Namgyu-Youn <yynk2012@gmail.com>"
+]
 license = "MIT"
 readme = "README.md"
+
+# New Version
+[project]
+name = "backend-gorani-side-project"
+version = "0.1.0"
+description = "Backend Gorani Side Project"
+authors = [
+    {name = "Taehan Kim", email = "taehan5479@gmail.com"},
+    {name = "Namgyu-Youn", email = "yynk2012@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "^3.9"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -17,7 +34,6 @@ numpy = "^1.26.4"
 python-multipart = "^0.0.7"
 torch = {version = "^2.0.0", source = "pytorch", extras = ["cpu"]}
 python-dotenv = "*"
-
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
