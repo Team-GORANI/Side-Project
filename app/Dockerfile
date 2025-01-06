@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir poetry==1.7.1 && \
     poetry config virtualenvs.create false && \
     poetry config installer.max-workers 10
 
-# 프로젝트 파일 복사
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 # requirements.txt 생성
