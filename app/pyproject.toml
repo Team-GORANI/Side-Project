@@ -1,4 +1,3 @@
-# Old Version
 [tool.poetry]
 name = "backend-gorani-side-project"
 version = "0.1.0"
@@ -9,19 +8,6 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
-
-# New Version
-[project]
-name = "backend-gorani-side-project"
-version = "0.1.0"
-description = "Backend Gorani Side Project"
-authors = [
-    {name = "Taehan Kim", email = "taehan5479@gmail.com"},
-    {name = "Namgyu-Youn", email = "yynk2012@gmail.com"}
-]
-license = {text = "MIT"}
-readme = "README.md"
-requires-python = "^3.9"
 
 [tool.poetry.dependencies]
 python = "^3.9"
