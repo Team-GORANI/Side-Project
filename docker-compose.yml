@@ -22,10 +22,9 @@ services:
       - HOUSE_MODEL_PATH=/app/models/house_model.pt
       - TREE_MODEL_PATH=/app/models/tree_model.pt
       - PERSON_MODEL_PATH=/app/models/person_model.pt
-      - DATABASE_URL=sqlite:///htp_project.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/ || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 5s 
       retries: 5
       start_period: 20s
