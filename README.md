@@ -9,14 +9,20 @@
 <img width="1728" alt="스크린샷 2025-01-07 오후 5 59 59" src="https://github.com/user-attachments/assets/f2646aa2-3360-443e-8a93-8e098716d525" />
 
 
+
+
 2. 여러분의 창의력을 활용해서 자유롭게 그림을 그려주세요! 또는 사진을 업로드할 수도 있습니다.
    
 <img width="1728" alt="스크린샷 2025-01-07 오후 6 01 09" src="https://github.com/user-attachments/assets/c1fe2397-30ef-4cc2-a83a-ae9501d1fd76" />
 
 
+
+
 3. 모두 그렸다면 "분석결과 보러가기"를 누르고, 심리 상담 결과를 확인해보세요.
 
 <img width="1728" alt="스크린샷 2025-01-07 오후 6 03 00" src="https://github.com/user-attachments/assets/99806363-3f44-4d59-8eba-2caafece908d" />
+
+
 
 
 ## ✨ Features
