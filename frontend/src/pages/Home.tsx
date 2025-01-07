@@ -1,36 +1,88 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Navbar } from '../components/Navbar';
 import noiseImage from '../assets/images/noise.png';
 
+// 자석 효과 설정
+const SPRING_CONFIG = { damping: 100, stiffness: 400 };
+const MAX_DISTANCE = 0.5;
+
+const MagneticButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const springX = useSpring(x, SPRING_CONFIG);
+  const springY = useSpring(y, SPRING_CONFIG);
+
+  useEffect(() => {
+    const calculateDistance = (e: MouseEvent) => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const distanceX = e.clientX - centerX;
+        const distanceY = e.clientY - centerY;
+
+        if (isHovered) {
+          x.set(distanceX * MAX_DISTANCE);
+          y.set(distanceY * MAX_DISTANCE);
+        } else {
+          x.set(0);
+          y.set(0);
+        }
+      }
+    };
+
+    document.addEventListener("mousemove", calculateDistance);
+    return () => document.removeEventListener("mousemove", calculateDistance);
+  }, [isHovered, x, y]);
+
+  return (
+    <motion.div
+      ref={buttonRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        x: springX,
+        y: springY,
+      }}
+    >
+      <button
+        onClick={onClick}
+        className="py-3 px-12 text-white rounded-full text-xl shadow-lg transition-colors duration-200"
+        style={{
+          backgroundColor: '#0D3272',
+          opacity: 1,
+          zIndex: 2,
+        }}
+      >
+        심리 분석 하러 가기
+      </button>
+    </motion.div>
+  );
+};
 
 const Home: React.FC = () => {
   const circleRef = useRef<HTMLDivElement>(null);
   const innerCircleRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // 'layer in view' 트리거 효과 (IntersectionObserver 사용)
   useEffect(() => {
     const textElement = textRef.current;
-    const buttonElement = buttonRef.current;
 
-    if (textElement && buttonElement) {
+    if (textElement) {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             textElement.classList.add('in-view'); // 애니메이션 트리거
-            buttonElement.classList.add('in-view'); // 버튼 애니메이션 트리거
           }
         });
       }, { threshold: 0.5 }); // 50% 보였을 때 트리거
 
       observer.observe(textElement);
-
-      return () => {
-        if (textElement) {
-          observer.unobserve(textElement);
-        }
-      };
+      return () => textElement && observer.unobserve(textElement);
     }
   }, []);
 
@@ -144,21 +196,13 @@ const Home: React.FC = () => {
       </div>
 
       {/* 버튼 */}
-      <button
-        ref={buttonRef}
-        onClick={() => window.location.href = '/select'} // 페이지 이동
-        className="absolute mt-8 py-3 px-12 text-white rounded-full text-xl shadow-lg hover:bg-blue-600 transition-colors duration-200"
-        style={{
-          backgroundColor: '#0D3272', // 버튼 색상 변경
-          top: 'calc(50% + 180px)', // 버튼은 텍스트 아래에 위치
-          left: '50%',
-          transform: 'translateX(-50%)', // 좌우 중앙 정렬
-          opacity: 1, // 바로 보이도록 설정
-          zIndex: 2, // 버튼이 다른 요소들 위에 오도록 설정
-        }}
-      >
-        심리 분석 하러 가기
-      </button>
+      <div className="absolute" style={{
+      top: 'calc(50% + 180px)',
+      left: '50%',
+      transform: 'translateX(-50%)'
+    }}>
+      <MagneticButton onClick={() => window.location.href = '/select'} /> 
+    </div>
     </div>
   );
 };
