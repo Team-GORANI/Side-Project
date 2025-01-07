@@ -18,6 +18,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - HOUSE_MODEL_PATH=/app/models/house_model.pt
       - TREE_MODEL_PATH=/app/models/tree_model.pt
