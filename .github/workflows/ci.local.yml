@@ -1,0 +1,101 @@
+name: Local CI Pipeline
+
+on: workflow_dispatch
+
+jobs:
+  backend-validate:
+    name: Backend Validation
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./app
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Echo environment info
+        run: |
+          echo "Running on OS: ${{ matrix.os }}"
+          echo "Python version: ${{ matrix.python-version }}"
+          pwd
+          ls -la
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        if: matrix.os != 'windows-latest'
+        run: |
+          echo "Installing Poetry on Unix-like system"
+          python -m pip install --upgrade pip
+          python -m pip install poetry==1.7.1
+          poetry --version
+
+      - name: Install Poetry (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          echo "Installing Poetry on Windows"
+          python -m pip install --upgrade pip
+          python -m pip install poetry==1.7.1
+          poetry --version
+
+      - name: Install dependencies
+        run: |
+          echo "Installing Python dependencies"
+          poetry install --no-interaction --no-root
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+      - name: Test Docker
+        run: |
+          echo "Testing Docker build"
+          docker version
+          docker build . -t backend:test
+
+  frontend-validate:
+    name: Frontend Validation
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ["20"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Echo environment info
+        run: |
+          echo "Running on OS: ${{ matrix.os }}"
+          echo "Node version: ${{ matrix.node-version }}"
+          pwd
+          ls -la
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: |
+          echo "Installing Node dependencies"
+          npm ci
+
+      - name: Test Docker
+        run: |
+          echo "Testing Docker build"
+          docker version
+          docker build . -t frontend:test

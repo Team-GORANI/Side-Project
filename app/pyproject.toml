@@ -28,16 +28,24 @@ uvicorn = "^0.34.0"
 ultralytics = {version = "^8.3.54", extras = ["cpu"]}
 numpy = "^1.26.4"
 python-multipart = "^0.0.7"
-torch = "2.0.0"
+# PyTorch 의존성 수정
+torch = [
+    {version = "^2.0.0", source = "torch-cpu", markers = "sys_platform == 'linux' or sys_platform == 'win32'"},
+    {version = "^2.0.0", markers = "sys_platform == 'darwin'"}
+]
 python-dotenv = "*"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
+pytest = "^8.3.4"
+ruff = "^0.8.6"
+pytest-cov = "^4.1.0"
 
 [[tool.poetry.source]]
-name = "pytorch"
+name = "torch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
+priority = "supplemental"
+
+[[tool.poetry.source]]
+name = "pypi"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -6,87 +6,74 @@ on:
   pull_request:
     branches: [ main, deployment ]
 
+env:
+  IS_ACT: ${{ vars.ACT == 'true' }}
+
 jobs:
   backend-validate:
     name: Validate Backend
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ./app
-
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9"]
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install Poetry
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install poetry
-        poetry --version
-
-    - name: Configure Poetry PATH
-      run: |
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Validate Poetry Configuration
-      run: |
-        python -m poetry env use python${{ matrix.python-version }}
-        python -m poetry check || true
-        python -m poetry lock --check || true
-
-    - name: Validate Backend Dockerfile
-      run: |
-        docker build . --file Dockerfile
-
-  frontend-validate:
-    name: Validate Frontend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json'
-
-    - name: Install Dependencies
-      run: npm ci
-
-    - name: Validate Frontend Dockerfile
-      run: |
-        docker build . --file Dockerfile
-
-  docker-compose-test:
-      name: Test Docker Compose
-      needs: [backend-validate, frontend-validate]
-      runs-on: ubuntu-latest
-
-      steps:
       - uses: actions/checkout@v3
 
-      - name: Install curl
-        run: sudo apt-get update && sudo apt-get install -y curl
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-      # Docker Compose V2
-      - name: Build and test docker compose
+      # GCP 인증은 실제 GitHub Actions에서만 실행
+      - id: 'auth'
+        if: env.IS_ACT != 'true'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        if: env.IS_ACT != 'true'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+
+      - name: Install Poetry (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          docker compose build
-          docker compose up -d
-          docker compose ps
-          sleep 10
-          curl -f http://localhost:8000/
-          docker compose down
+          python -m pip install --upgrade pip
+          python -m pip install poetry==1.7.1
+        shell: pwsh
+
+      - name: Install Poetry (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry==1.7.1
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create false
+          poetry config installer.max-workers 10
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+      - name: Build Docker image (local)
+        if: env.IS_ACT == 'true'
+        run: docker build . -t backend:local
+
+      - name: Build and Push Docker image (GitHub Actions)
+        if: env.IS_ACT != 'true'
+        run: |
+          gcloud auth configure-docker
+          docker build -t gcr.io/$

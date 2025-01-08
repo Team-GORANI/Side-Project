@@ -12,12 +12,12 @@ on:
       - "app/**" # app 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
 env:
   PROJECT_ID: ascendant-pad-445604-e1 # GCP 프로젝트 ID
-  REGION: asia-northeast3               # GCP 리전(서울)
-  ZONE: asia-northeast3-a               # GCP 존
-  REPOSITORY: model-deploy            # Docker Artifact Registry 레포지토리 이름
-  IMAGE: main                         # Docker 이미지 이름
-  GCE_INSTANCE: gorani-back           # GCE 인스턴스 이름
-  GCS_BUCKET: gorani-model-deploy       # GCS 버킷 이름
+  REGION: asia-northeast3 # GCP 리전(서울)
+  ZONE: asia-northeast3-a # GCP 존
+  REPOSITORY: model-deploy # Docker Artifact Registry 레포지토리 이름
+  IMAGE: main # Docker 이미지 이름
+  GCE_INSTANCE: gorani-back # GCE 인스턴스 이름
+  GCS_BUCKET: gorani-model-deploy # GCS 버킷 이름
 
 jobs:
   ci:
@@ -26,63 +26,63 @@ jobs:
       - uses: actions/checkout@v3
 
       # GCP 인증
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v0.6.0'
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v0.6.0"
         with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
-          token_format: 'access_token'
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+          token_format: "access_token"
 
       # Setup gcloud CLI
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v2'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v2"
         with:
-          version: '>= 363.0.0'
-      
+          version: ">= 363.0.0"
+
       # 현재 디렉토리에 models 폴더 생성
-      - name: 'Create models directory'
+      - name: "Create models directory"
         run: |
           sudo mkdir -p ./app/models
           sudo chmod 777 ./app/models
 
       # GCS에서 모델 파일 다운로드
-      - name: 'Download model files from GCS'
+      - name: "Download model files from GCS"
         run: |
           gsutil cp gs://$GCS_BUCKET/house_model.pt ./app/models/house_model.pt
           gsutil cp gs://$GCS_BUCKET/person_model.pt ./app/models/person_model.pt
           gsutil cp gs://$GCS_BUCKET/tree_model.pt ./app/models/tree_model.pt
-          
-      - name: 'Verify model files'
+
+      - name: "Verify model files"
         run: ls -l app/models/
-      
+
       # Docker 이미지 빌드
-      - name: 'Docker build'
+      - name: "Docker build"
         run: |-
           docker build \
             --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
             ./app
 
-      - uses: 'docker/login-action@v1'
-        name: 'Docker login'
+      - uses: "docker/login-action@v1"
+        name: "Docker login"
         with:
-          registry: '${{ env.REGION }}-docker.pkg.dev'
-          username: 'oauth2accesstoken'
-          password: '${{ steps.auth.outputs.access_token }}'
+          registry: "${{ env.REGION }}-docker.pkg.dev"
+          username: "oauth2accesstoken"
+          password: "${{ steps.auth.outputs.access_token }}"
 
-      - name: 'Docker push'
+      - name: "Docker push"
         run: |-
           docker push "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA"
   cd:
     runs-on: ubuntu-latest
     needs: [ci]
     steps:
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v0.6.0'
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v0.6.0"
         with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
-          token_format: 'access_token'
-      
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+          token_format: "access_token"
+
       - name: Deploy
         run: |-
           gcloud compute instances update-container "$GCE_INSTANCE" \

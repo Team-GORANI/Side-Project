@@ -1,19 +1,27 @@
-FROM python:3.9 as requirements-stage
+# Stage 1: Requirements
+FROM python:3.9-slim as requirements-stage
 
 WORKDIR /tmp
 
-# Poetry 설치 및 설정
-RUN pip install --no-cache-dir poetry==1.7.1 && \
-    poetry config virtualenvs.create false && \
-    poetry config installer.max-workers 10
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.7.1 && \
+    poetry config virtualenvs.create false
+
+# Copy dependency files
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
-# requirements.txt 생성
-RUN pip install --no-cache-dir torch==2.0.0 && \
-    python -m poetry install --no-interaction --no-root && \
-    python -m poetry export --format requirements.txt --output requirements.txt --without-hashes
+# Install dependencies and export requirements
+RUN poetry config installer.max-workers 10 && \
+    poetry install --no-interaction --no-root && \
+    poetry export --format requirements.txt --output requirements.txt --without-hashes
 
+# Stage 2: Final image
 FROM python:3.9-slim
 
 WORKDIR /app
@@ -27,10 +35,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install system package
 COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt \
-    --index-url https://pypi.org/simple \
-    --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./models /app/models
 COPY . /app
