@@ -3,7 +3,6 @@
 *.o
 *.exe
 *.log
-lightning_logs
 *.csv
 *.db
 *.pt
@@ -14,15 +13,11 @@ build
 egg-info
 
 # IDE and Editor files
-.vscode
 .idea
 .pycharm.debug
 .cache
 
 # Checkpoint files
-checkpoints/
-.pth
-.ckpt
 .pt
 
 # Virtual environment files
@@ -44,10 +39,6 @@ Thumbs.db
 *.tmp
 *.swp
 
-# Third-party libraries
-node_modules
-vendor
-
 # Operating system files
 .AppleDouble
 .LSOverride
@@ -56,11 +47,8 @@ Desktop.ini
 # Data and Wandb files
 data/
 logs/
-z_mine/
-wandb/
-pths/
-Ultralytics/
 
-# Reflex files
-reflex_templates
-ai_image_gen
+# GCP
+key.json
+.secrets
+*.key
