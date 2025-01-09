@@ -6,6 +6,7 @@
 *.csv
 *.db
 *.pt
+
 # Build and packaged files
 __pycache__
 dist
@@ -14,11 +15,7 @@ egg-info
 
 # IDE and Editor files
 .idea
-.pycharm.debug
 .cache
-
-# Checkpoint files
-.pt
 
 # Virtual environment files
 venv
@@ -44,11 +41,13 @@ Thumbs.db
 .LSOverride
 Desktop.ini
 
-# Data and Wandb files
-data/
-logs/
-
 # GCP
 key.json
 .secrets
 *.key
+
+# Poetry
+poetry.lock
+
+# React
+frontend/node_modules
