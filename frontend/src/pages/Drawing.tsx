@@ -41,6 +41,15 @@ export default function Drawing() {
   // 캔버스 참조
   const canvasRef = useRef<ReactSketchCanvasRef>(null);
 
+  // Blob URL 메모리 정리 (cleanup)
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   // type 유효성 검사
   const validateType = (param: string | undefined): DrawingType => {
     if (!param || !['house', 'tree', 'person'].includes(param)) {
@@ -99,6 +108,8 @@ export default function Drawing() {
   // 파일 처리 함수
   const handleFileChange = (file: File) => {
     setUploadedFile(file);
+    const previewURL = URL.createObjectURL(file); // Blob URL 생성 (미리보기)
+    setPreviewUrl(previewURL);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -230,9 +241,9 @@ export default function Drawing() {
             </motion.div>
 
             {/* 그리기/업로드 영역 */}
-            <div className="relative w-[900px] h-[500px] mx-auto">
+            <div className="relative w-full max-w-[900px] h-[500px] mx-auto overflow-hidden">
               {mode === 'draw' ? (
-                <div className="drawing-container relative">
+                <div className="drawing-container relative w-full h-full">
                   {/* ToolBar 컴포넌트 */}
                   <motion.div 
                     className="tools-container"
@@ -273,7 +284,7 @@ export default function Drawing() {
                   )}
 
                   {/* 캔버스 */}
-                  <div className="drawing-area">
+                  <div className="drawing-area w-full h-full">
                     <ReactSketchCanvas
                       ref={canvasRef}
                       width="100%"
@@ -287,7 +298,7 @@ export default function Drawing() {
               ) : (
                 // 업로드 모드
                 <div 
-                  className={`upload-area ${isDragging ? 'dragging' : ''}`}
+                  className={`upload-area w-full h-full ${isDragging ? 'dragging' : ''}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -307,9 +318,9 @@ export default function Drawing() {
                           setUploadedFile(null);
                           setPreviewUrl(null);
                         }}
-                        className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full 
+                        className="absolute -top-1 -right-1 w-8 h-8 bg-white rounded-full 
                                   flex items-center justify-center shadow-md hover:bg-gray-100 
-                                  transition-all duration-200 border border-gray-200 z-10"
+                                  transition-all duration-200 border border-gray-200 z-[1000]"
                       >
                         ❌
                       </button>
