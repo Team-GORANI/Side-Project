@@ -8,7 +8,7 @@ authors = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = "^3.9"
+requires-python = ">=3.9"
 
 [tool.poetry]
 name = "backend-gorani-side-project"
@@ -18,35 +18,40 @@ authors = [
     "Taehan Kim <taehan5479@gmail.com>",
     "Namgyu-Youn <yynk2012@gmail.com>"
 ]
+packages = [
+    { include = "app" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 fastapi = "^0.105.0"
 sqlalchemy = "^2.0.36"
-openai = "^1.58.1"
-uvicorn = "^0.34.0"
+requests = "^2.32.3"
+uvicorn = {extras = ["standard"], version = "^0.34.0"}
 ultralytics = {version = "^8.3.54", extras = ["cpu"]}
 numpy = "^1.26.4"
 python-multipart = "^0.0.7"
-# PyTorch 의존성 수정
 torch = [
     {version = "^2.0.0", source = "torch-cpu", markers = "sys_platform == 'linux' or sys_platform == 'win32'"},
     {version = "^2.0.0", markers = "sys_platform == 'darwin'"}
 ]
-python-dotenv = "*"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 ruff = "^0.8.6"
 pytest-cov = "^4.1.0"
 
-[[tool.poetry.source]]
-name = "torch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "supplemental"
-
-[[tool.poetry.source]]
-name = "pypi"
-priority = "primary"
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 140
+target-version = "py39"
+lint.select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=app"

@@ -6,11 +6,12 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
-    healthcheck:
-      disable: true
-    command: npm run dev -- --host 0.0.0.0
+      - OLLAMA_HOST=ollama
+    networks:
+      - app-network
+    depends_on:
+      ollama:
+        condition: service_healthy
 
   backend:
     build:
@@ -25,9 +26,33 @@ services:
       - TREE_MODEL_PATH=/app/models/tree_model.pt
       - PERSON_MODEL_PATH=/app/models/person_model.pt
       - DATABASE_URL=sqlite:///htp_project.db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      - OLLAMA_HOST=ollama
+    networks:
+      - app-network
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+      image: ollama/ollama
+      container_name: ollama
+      ports:
+        - "11434:11434"
+      volumes:
+        - ollama_data:/root/.ollama
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:11434/api/health || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 30s
+      networks:
+        - app-network
+
+networks:
+  app-network:
+    name: app-network
+
+# volumes 섹션 추가
+volumes:
+  ollama_data: {}
