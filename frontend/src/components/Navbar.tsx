@@ -16,7 +16,7 @@ export const Navbar = ({ style, link = "/" }: NavbarProps) => {
       style={style}
     >
       {/* 내부 컨텐츠 컨테이너 */}
-      <div className="max-w-[1280px] mx-auto flex items-center justify-between">
+      <div className="ml-0 flex items-center">
         <Link to={link}>
           {/* 로고 컨테이너 - 호버/클릭 애니메이션 적용 */}
           <motion.div
