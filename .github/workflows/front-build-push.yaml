@@ -1,0 +1,73 @@
+name: Front-End Build & Push New Model
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**" # frontend 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "frontend/**" # frontend 폴더와 하위 파일 및 디렉토리에 변경이 있을 때만 트리거
+env:
+  PROJECT_ID: ascendant-pad-445604-e1 # GCP 프로젝트 ID
+  REGION: asia-northeast3               # GCP 리전(서울)
+  ZONE: asia-northeast3-a               # GCP 존
+  REPOSITORY: gorani-frontend            # Docker Artifact Registry 레포지토리 이름
+  IMAGE: main                         # Docker 이미지 이름
+  GCE_INSTANCE: gorani-front           # GCE VM 인스턴스 이름
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # GCP 인증
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0.6.0'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          token_format: 'access_token'
+
+      # Setup gcloud CLI
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: '>= 363.0.0'
+      
+      # Docker 이미지 빌드
+      - name: 'Docker build'
+        run: |-
+          docker build \
+            --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
+            ./frontend
+
+      - uses: 'docker/login-action@v1'
+        name: 'Docker login'
+        with:
+          registry: '${{ env.REGION }}-docker.pkg.dev'
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+
+      - name: 'Docker push'
+        run: |-
+          docker push "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA"
+  cd:
+    runs-on: ubuntu-latest
+    needs: [ci]
+    steps:
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0.6.0'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          token_format: 'access_token'
+      
+      - name: Deploy
+        run: |-
+          gcloud compute instances update-container "$GCE_INSTANCE" \
+            --zone "$ZONE" \
+            --container-image "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA"
