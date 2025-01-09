@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // axios 인스턴스 생성
 const api = axios.create({
-    baseURL: 'http://localhost:8000', // FastAPI 서버 주소
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000', // FastAPI 서버 주소
     headers: {
         'Content-Type': 'application/json',
     },
