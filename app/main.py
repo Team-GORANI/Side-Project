@@ -13,7 +13,7 @@ app = FastAPI()
 # 프론트엔드(localhost:5174)에서의 API 요청 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # 프론트엔드 서버 주소
+    allow_origins=[os.getenv('FRONTEND_URL', 'http://localhost:5173')], # 프론트엔드 서버 주소
     allow_credentials=True,                  # 자격 증명(쿠키 등) 허용
     allow_methods=["*"],                     # 모든 HTTP 메서드 허용
     allow_headers=["*"],                     # 모든 HTTP 헤더 허용
