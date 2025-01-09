@@ -1,4 +1,3 @@
-import json
 
 # JSON 파일 경로 
 json_file_path = "data/tree_info.json"

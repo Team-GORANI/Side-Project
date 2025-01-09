@@ -167,11 +167,11 @@ def analyze_house(bboxes=None):
         label_msg, exists = check_label_existence(bboxes, feature)
         if exists:
             if feature == "길":
-                results.append(f"Road existence: Welcome to Social Interrelationships")
+                results.append("Road existence: Welcome to Social Interrelationships")
             if feature == "잔디":
-                results.append(f"Grass existence: psychological stability")
+                results.append("Grass existence: psychological stability")
             if feature == "울타리":
-                results.append(f"Fence existence: trying to build a psychological bulwark")
+                results.append("Fence existence: trying to build a psychological bulwark")
 
     return results
 

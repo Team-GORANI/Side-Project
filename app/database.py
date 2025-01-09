@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Integer, JSON
+from sqlalchemy import JSON, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 

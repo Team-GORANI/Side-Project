@@ -1,18 +1,20 @@
-import json
 import argparse
-from openai import OpenAI
+
+import requests
 
 # Import from other files
 from tools.house_func import analyze_house
-from tools.tree_func import analyze_tree
 from tools.person_func import analyze_person
+from tools.tree_func import analyze_tree
+
 
 class HTPAnalyzer:
     """HTP (House-Tree-Person) 심리 분석을 수행하는 클래스"""
-    def __init__(self, api_key):
-        self.client = OpenAI(api_key=api_key)
 
-    def analyze_with_gpt(self, features, drawing_type):
+    def __init__(self, base_url="http://localhost:11434"):
+        self.base_url = base_url
+
+    def analyze_with_ollama(self, features, drawing_type):
         system_prompt = """You are a professional HTP psychologist and mental health counselor.
         Analyze both current psychological state and developmental influences through drawing features.
         Provide detailed analysis by connecting specific drawing features to psychological interpretations.
@@ -57,59 +59,54 @@ class HTPAnalyzer:
         - Stress management suggestions
         - Provide practical suggestions
         - Growth potential
-
-        Analysis guidelines:
-        - Start content immediately after each section title
-        - Write clear and concise paragraphs
-        - Translate coordinates into descriptive terms
-        - Include practical advice
-        - Maintain a supportive tone
         """
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini", # 사용할 GPT 모델
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.5, # 창의성 조절
-                max_tokens=1000, # 최대 응답 길이
-                presence_penalty=0.3 # 반복 방지 페널티
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": "mistral",  # 또는 다른 ollama 모델
+                    "prompt": f"{system_prompt}\n\n{user_prompt}",
+                    "stream": False,
+                },
             )
-            return response.choices[0].message.content
+            response.raise_for_status()
+            return response.json()["response"]
         except Exception as e:
             return f"분석 중 오류가 발생했습니다: {str(e)}"
 
+
 def main():
-    parser = argparse.ArgumentParser(description='HTP Psychological Analysis System')
-    # 분석할 그림 타입 지정
-    parser.add_argument('type', choices=['house', 'tree', 'person'],
-                      help='Drawing type to analyze (house, tree, person)')
+    parser = argparse.ArgumentParser(description="HTP Psychological Analysis System")
+    parser.add_argument(
+        "type",
+        choices=["house", "tree", "person"],
+        help="Drawing type to analyze (house, tree, person)",
+    )
     args = parser.parse_args()
 
-    # OpenAI API 키 설정
-    API_KEY = "your-api-key"
-    analyzer = HTPAnalyzer(API_KEY)
+    # Ollama 인스턴스 생성
+    analyzer = HTPAnalyzer()
 
     # 그림 유형별 분석 함수 매핑
     analysis_functions = {
-        'house': analyze_house,
-        'tree': analyze_tree,
-        'person': analyze_person
+        "house": analyze_house,
+        "tree": analyze_tree,
+        "person": analyze_person,
     }
 
     # 선택된 그림 유형의 특징 분석
     features = analysis_functions[args.type]()
 
-    # GPT를 사용한 심리 분석
-    analysis = analyzer.analyze_with_gpt(features, args.type)
+    # Ollama를 사용한 심리 분석
+    analysis = analyzer.analyze_with_ollama(features, args.type)
 
     # 분석 결과 출력
     print(f"\n=== {args.type.upper()} Drawing Analysis ===")
     print(analysis)
 
     return analysis
+
 
 if __name__ == "__main__":
     main()

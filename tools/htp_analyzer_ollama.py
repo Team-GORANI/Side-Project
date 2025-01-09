@@ -1,9 +1,7 @@
-import json
 import argparse
 
 # Import LLM model
 from ollama import Client
-from openai import OpenAI
 
 from house_func import analyze_house
 from tree_func import analyze_tree

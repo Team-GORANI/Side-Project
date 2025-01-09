@@ -1,5 +1,7 @@
 import streamlit as st
-import json, os, cv2
+import json
+import os
+import cv2
 import numpy as np
 import argparse
 from PIL import ImageFont, ImageDraw, Image

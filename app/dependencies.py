@@ -1,6 +1,7 @@
 from models.house_model import detect_houses
-from models.tree_model import detect_trees
 from models.person_model import detect_people
+from models.tree_model import detect_trees
+
 
 def get_model_predictions(image_path: str) -> dict:
     """

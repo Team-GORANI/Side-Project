@@ -1,6 +1,4 @@
-import json
-
-# JSON 파일 경로 
+# JSON 파일 경로
 json_file_path = "data/person_info.json"
 
 # 한글 레이블을 영어로 매핑
@@ -22,8 +20,9 @@ label_mapping = {
     "단추": "button",
     "주머니": "pocket",
     "운동화": "sneakers",
-    "남자구두": "dress_shoes"
+    "남자구두": "dress_shoes",
 }
+
 
 def calculate_head_to_upper_ratio(bboxes):
     """
@@ -47,6 +46,7 @@ def calculate_head_to_upper_ratio(bboxes):
             return "Large head: Intellectual curiosity, lack of physical energy."
         elif ratio < 1.2819802:
             return "No head: Neurosis, depression, autistic tendencies."
+
 
 def calculate_eye_to_face_ratio(bboxes):
     """
@@ -72,6 +72,7 @@ def calculate_eye_to_face_ratio(bboxes):
         elif ratio < 0.0221859051:
             return "No eyes: Guilt feelings."
 
+
 def calculate_leg_to_upper_ratio(bboxes):
     """
     Calculate the leg-to-upper body ratio and print the result in English.
@@ -85,16 +86,17 @@ def calculate_leg_to_upper_ratio(bboxes):
         elif bbox.get("label") == "상체":
             upper_body_height = bbox["h"]
 
-        if len(leg_heights) == 2 and upper_body_height is not None:
+        if len(leg_heights) == 2 and upper_body_height is True:
             break
 
-    if len(leg_heights) == 2 and upper_body_height is not None and upper_body_height > 0:
+    if len(leg_heights) == 2 and upper_body_height > 0:
         avg_leg_height = sum(leg_heights) / 2
         ratio = avg_leg_height / upper_body_height
         if ratio > 1.30162008:
             return "Long legs: Desire for stability and independence."
         elif ratio < 0.9464469:
             return "Short legs: Loss of independence, tendency for dependency."
+
 
 def check_human_position(bboxes):
     """
@@ -107,9 +109,12 @@ def check_human_position(bboxes):
             if center_x < 1280 / 3:
                 return "Left position: Obsession with the past, introverted tendencies."
             elif center_x > 1280 * 2 / 3:
-                return "Right position: Future-oriented attitude, extroverted tendencies."
+                return (
+                    "Right position: Future-oriented attitude, extroverted tendencies."
+                )
             else:
                 return "Center position: Self-centeredness, confidence in interpersonal relationships."
+
 
 def check_label_existence(bboxes, label):
     """
@@ -119,6 +124,7 @@ def check_label_existence(bboxes, label):
         if bbox.get("label") == label:
             return  # Nothing is printed if the label exists
 
+
 def analyze_person(bboxes):
     """사람 그림의 모든 특징을 분석"""
     results = []
@@ -126,9 +132,11 @@ def analyze_person(bboxes):
     # 바운딩박스 정보 -> 문자열로 변환
     bbox_info = []
     for bbox in bboxes:
-        eng_label = label_mapping.get(bbox['label'], bbox['label'])
-        bbox_info.append(f"{eng_label}: [{bbox['x']},{bbox['y']},{bbox['w']},{bbox['h']}]")
-    
+        eng_label = label_mapping.get(bbox["label"], bbox["label"])
+        bbox_info.append(
+            f"{eng_label}: [{bbox['x']},{bbox['y']},{bbox['w']},{bbox['h']}]"
+        )
+
     results.append(", ".join(bbox_info))
     results.append("")
 
@@ -137,15 +145,16 @@ def analyze_person(bboxes):
         check_human_position(bboxes),
         calculate_head_to_upper_ratio(bboxes),
         calculate_eye_to_face_ratio(bboxes),
-        calculate_leg_to_upper_ratio(bboxes)
+        calculate_leg_to_upper_ratio(bboxes),
     ]
-    
+
     for result in analysis_results:
         if result is not None:
             results.append(result)
 
     return results
-    
+
+
 # Example run
 # final_result = analyze_person()
 # print("\n".join(final_result))

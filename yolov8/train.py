@@ -1,5 +1,4 @@
 import torch
-from tqdm import tqdm
 from ultralytics import YOLO
 import os
 import json
