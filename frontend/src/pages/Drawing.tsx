@@ -6,7 +6,7 @@ import { Navbar } from '../components/Navbar';
 import { analyzeImage } from '../services/api';
 import '../styles/pages/drawing.css';
 
-const ERASER_SIZE = 20; // 지우개 크기
+const ERASER_SIZE = 30; // 지우개 크기
 const PEN_SIZE = 4; // 펜 크기
 
 // 그리기 타입 정의 (house/tree/person)
@@ -241,10 +241,8 @@ export default function Drawing() {
             </motion.div>
 
             {/* 그리기/업로드 영역 */}
-            <div className="relative w-full max-w-[900px] h-[500px] mx-auto overflow-hidden">
-              {mode === 'draw' ? (
-                <div className="drawing-container relative w-full h-full">
-                  {/* ToolBar 컴포넌트 */}
+            <div className="relative w-full max-w-[900px] mx-auto">
+              {mode === 'draw' && (
                   <motion.div 
                     className="tools-container"
                     initial={{ opacity: 0, x: -20 }}
@@ -263,8 +261,12 @@ export default function Drawing() {
                     >
                       🧽
                     </button>
-                  </motion.div>
+                    </motion.div>
+                  )}
                   
+                  <div className="h-[500px] overflow-hidden">
+                  {mode === 'draw' ? (
+                  <div className="drawing-container relative w-full h-full">
                   {/* 지우개 커서 */}
                   {tool === 'eraser' && (
                     <div
@@ -349,6 +351,7 @@ export default function Drawing() {
                   )}
                 </div>
               )}
+            </div>
             </div>
 
             {error && (
