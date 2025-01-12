@@ -30,12 +30,21 @@
 - 이미지를 분석하고, 이를 활용한 심리 상담 결과를 제공합니다. 심리 상담에는 GPT가 사용됩니다.
 
 
+## 🖥️ System Architecture
+
+<img width="1728" alt="architecture" src="https://github.com/user-attachments/assets/65e8b09e-24d2-4262-a9ac-d4b567d8645c" />
+
+
 ## ➕ Prerequisites
 - Python 3.9 or higher
 - Back-end : fastapi, uvicorn
 - Model : ultralytics
 - DB : sqlalchemy
 - LLM : openai
+
+
+## Timeline
+<img width="1728" alt="architecture" src="https://github.com/user-attachments/assets/4c6a0436-8a99-43ac-83a6-bbe6b9eb8d08" />
 
 
 ## 🚩 How to use?
