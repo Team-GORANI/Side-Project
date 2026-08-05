@@ -1,20 +1,21 @@
-FROM python:3.9 as requirements-stage
+FROM python:3.12-bookworm AS requirements-stage
 
 WORKDIR /tmp
 
 # Poetry 설치 및 설정
-RUN pip install --no-cache-dir poetry==1.7.1 && \
+# Poetry 2.x: export 명령이 별도 플러그인으로 분리됨 (poetry.lock lock-version 2.1 요구)
+RUN pip install --no-cache-dir poetry==2.4.1 poetry-plugin-export==1.10.0 && \
     poetry config virtualenvs.create false && \
     poetry config installer.max-workers 10
 
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 # requirements.txt 생성
-RUN pip install --no-cache-dir torch==2.0.0 && \
+RUN pip install --no-cache-dir torch==2.13.0 && \
     python -m poetry install --no-interaction --no-root && \
     python -m poetry export --format requirements.txt --output requirements.txt --without-hashes
 
-FROM python:3.9-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
